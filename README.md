@@ -95,9 +95,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📋 DBMS Viva & Grading Demonstration Checklist
+## 📋 some common actions to verify:
 
-When demonstrating to your professor:
+
 1. **Explore Home (`/`)**: Show Bayesian trending movies, filter by Sci-Fi & 9.0+ rating.
 2. **Open "⚡ DBMS Inspector"**: Show the exact raw SQL query powering the active view.
 3. **Write a Review on a Movie (`/movies/1`)**: Submit a 10.0 rating and show the live feedback highlighting `trg_update_movie_rating`.
