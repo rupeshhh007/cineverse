@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+}
+
+/* Hide scrollbar for clean UI but allow scroll */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
