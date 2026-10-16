@@ -112,6 +112,7 @@ export default function DbmsConsolePage() {
   const [sqlInput, setSqlInput] = useState(PRESET_QUERIES[0].sql);
   const [queryResult, setQueryResult] = useState<any>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [allowWrite, setAllowWrite] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Trigger Demo State
@@ -138,11 +139,11 @@ export default function DbmsConsolePage() {
       const res = await fetch('/api/dbms/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sql: sqlInput }),
+        body: JSON.stringify({ sql: sqlInput, allowWrite }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Query failed');
+        throw new Error(data.error || data.detail || 'Query failed');
       }
       setQueryResult(data);
     } catch (err: any) {
@@ -226,11 +227,11 @@ export default function DbmsConsolePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-gray-900 text-xs">
           <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
             <div className="text-gray-500">Schema Structure</div>
-            <div className="text-base font-bold text-white font-mono mt-0.5">12 Tables (3NF)</div>
+            <div className="text-base font-bold text-white font-mono mt-0.5">13 Tables (3NF)</div>
           </div>
           <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
             <div className="text-gray-500">Triggers Registered</div>
-            <div className="text-base font-bold text-white font-mono mt-0.5">3 PL/pgSQL Triggers</div>
+            <div className="text-base font-bold text-white font-mono mt-0.5">4 PL/pgSQL Triggers</div>
           </div>
           <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
             <div className="text-gray-500">Stored Functions</div>
@@ -318,16 +319,31 @@ export default function DbmsConsolePage() {
               className="w-full p-4 bg-black font-mono text-xs sm:text-sm text-gray-400 focus:outline-none resize-y leading-relaxed"
             />
 
-            <div className="flex items-center justify-between p-3.5 bg-gray-900 border-t border-gray-900">
-              <span className="text-[11px] text-gray-500">
-                Executes directly against database client
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-gray-900 border-t border-gray-900">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAllowWrite(!allowWrite)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono transition-colors border ${
+                    allowWrite
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  }`}
+                  title={allowWrite ? "Write Mode: DML/DDL execution enabled" : "Read-Only Mode: Only SELECT / EXPLAIN allowed"}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{allowWrite ? 'Write Mode (Active)' : 'Read-Only Mode (Safe)'}</span>
+                </button>
+                <span className="text-[11px] text-gray-500 hidden sm:inline">
+                  {allowWrite ? 'Warning: DML/DDL queries can modify database' : 'Protected query execution'}
+                </span>
+              </div>
               <button
                 onClick={handleExecuteSql}
                 disabled={isExecuting || !sqlInput.trim()}
                 className="px-5 py-2 rounded-xl bg-white hover:bg-gray-200 text-black font-semibold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-40"
               >
-                <Play className="w-3.5 h-3.5 fill-white" />
+                <Play className="w-3.5 h-3.5 fill-black" />
                 <span>{isExecuting ? 'Executing...' : 'Run Query'}</span>
               </button>
             </div>
@@ -335,9 +351,22 @@ export default function DbmsConsolePage() {
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start gap-3 animate-fade-in">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <div className="font-mono text-xs">{error}</div>
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start justify-between gap-3 animate-fade-in">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div className="font-mono text-xs">{error}</div>
+              </div>
+              {error.includes('Read-only') && (
+                <button
+                  onClick={() => {
+                    setAllowWrite(true);
+                    setTimeout(handleExecuteSql, 50);
+                  }}
+                  className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-xs font-medium shrink-0"
+                >
+                  Enable Write & Retry
+                </button>
+              )}
             </div>
           )}
 

@@ -15,15 +15,16 @@ DROP VIEW IF EXISTS v_trending_movies CASCADE;
 DROP TRIGGER IF EXISTS trg_update_movie_rating ON reviews CASCADE;
 DROP TRIGGER IF EXISTS trg_log_review_activity ON reviews CASCADE;
 DROP TRIGGER IF EXISTS trg_update_review_likes ON review_likes CASCADE;
-DROP TRIGGER IF EXISTS trg_log_watchlist_activity ON watchlist_items CASCADE;
+DROP TRIGGER IF EXISTS trg_log_watchlist_add ON watchlist_items CASCADE;
 
 DROP FUNCTION IF EXISTS fn_trg_update_movie_rating_stats() CASCADE;
 DROP FUNCTION IF EXISTS fn_trg_log_review_activity() CASCADE;
 DROP FUNCTION IF EXISTS fn_trg_update_review_likes() CASCADE;
-DROP FUNCTION IF EXISTS fn_trg_log_watchlist_activity() CASCADE;
+DROP FUNCTION IF EXISTS fn_trg_log_watchlist_add() CASCADE;
 DROP FUNCTION IF EXISTS fn_recommend_movies(INT, INT) CASCADE;
 DROP FUNCTION IF EXISTS fn_get_user_analytics(INT) CASCADE;
 
+DROP TABLE IF EXISTS app_meta CASCADE;
 DROP TABLE IF EXISTS activity_logs CASCADE;
 DROP TABLE IF EXISTS follows CASCADE;
 DROP TABLE IF EXISTS watchlist_items CASCADE;
@@ -41,12 +42,19 @@ DROP TABLE IF EXISTS users CASCADE;
 -- 2. TABLE DEFINITIONS (Normalized to 3NF / BCNF)
 -- ----------------------------------------------------------------------------
 
+-- APP_META TABLE (Schema Versioning & State Management)
+CREATE TABLE app_meta (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- USERS TABLE
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL DEFAULT 'hashed_secret',
+    password_hash VARCHAR(255) NOT NULL,
     display_name VARCHAR(100) NOT NULL,
     bio TEXT,
     avatar_url VARCHAR(500) DEFAULT 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
@@ -106,13 +114,13 @@ CREATE TABLE movie_cast (
     PRIMARY KEY (movie_id, person_id, job_role)
 );
 
--- REVIEWS TABLE
+-- REVIEWS TABLE (Rating required 1.0-10.0, written review optional)
 CREATE TABLE reviews (
     review_id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     movie_id INT NOT NULL REFERENCES movies(movie_id) ON DELETE CASCADE,
     rating NUMERIC(3, 1) NOT NULL CHECK (rating >= 1.0 AND rating <= 10.0),
-    review_text TEXT NOT NULL,
+    review_text TEXT DEFAULT '',
     has_spoilers BOOLEAN DEFAULT FALSE,
     likes_count INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -120,7 +128,7 @@ CREATE TABLE reviews (
     CONSTRAINT unique_user_movie_review UNIQUE (user_id, movie_id)
 );
 
--- REVIEW_LIKES TABLE
+-- REVIEW_LIKES TABLE (Normalized source of truth for review likes)
 CREATE TABLE review_likes (
     user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     review_id INT NOT NULL REFERENCES reviews(review_id) ON DELETE CASCADE,
@@ -135,7 +143,7 @@ CREATE TABLE watchlists (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     is_public BOOLEAN DEFAULT TRUE,
-    is_system_default BOOLEAN DEFAULT FALSE, -- e.g. default 'Watchlist'
+    is_system_default BOOLEAN DEFAULT FALSE,
     likes_count INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -177,6 +185,9 @@ CREATE INDEX idx_movies_title ON movies(title);
 CREATE INDEX idx_reviews_movie_id ON reviews(movie_id);
 CREATE INDEX idx_reviews_user_id ON reviews(user_id);
 CREATE INDEX idx_reviews_created_at ON reviews(created_at DESC);
+CREATE INDEX idx_review_likes_review_id ON review_likes(review_id);
+CREATE INDEX idx_watchlist_items_movie_id ON watchlist_items(movie_id);
+CREATE INDEX idx_watchlist_items_watchlist_id ON watchlist_items(watchlist_id);
 CREATE INDEX idx_movie_genres_genre_id ON movie_genres(genre_id);
 CREATE INDEX idx_movie_cast_person_id ON movie_cast(person_id);
 CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
@@ -231,8 +242,9 @@ CREATE OR REPLACE FUNCTION fn_trg_log_review_activity()
 RETURNS TRIGGER AS $$
 DECLARE
     v_movie_title VARCHAR(255);
+    v_movie_poster VARCHAR(500);
 BEGIN
-    SELECT title INTO v_movie_title FROM movies WHERE movie_id = NEW.movie_id;
+    SELECT title, poster_url INTO v_movie_title, v_movie_poster FROM movies WHERE movie_id = NEW.movie_id;
 
     INSERT INTO activity_logs (user_id, activity_type, target_id, metadata)
     VALUES (
@@ -242,9 +254,10 @@ BEGIN
         jsonb_build_object(
             'movie_id', NEW.movie_id,
             'movie_title', v_movie_title,
+            'movie_poster', v_movie_poster,
             'rating', NEW.rating,
             'review_id', NEW.review_id,
-            'snippet', SUBSTRING(NEW.review_text FROM 1 FOR 80)
+            'snippet', SUBSTRING(COALESCE(NEW.review_text, '') FROM 1 FOR 80)
         )
     );
     RETURN NEW;
@@ -257,7 +270,7 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_trg_log_review_activity();
 
 
--- TRIGGER 3: Update review like count automatically
+-- TRIGGER 3: Update review like count automatically from review_likes
 CREATE OR REPLACE FUNCTION fn_trg_update_review_likes()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -286,11 +299,48 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_trg_update_review_likes();
 
 
+-- TRIGGER 4: Automatically log activity when a movie is added to a watchlist
+CREATE OR REPLACE FUNCTION fn_trg_log_watchlist_add()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_user_id INT;
+    v_movie_title VARCHAR(255);
+    v_movie_poster VARCHAR(500);
+    v_watchlist_name VARCHAR(100);
+BEGIN
+    SELECT user_id, name INTO v_user_id, v_watchlist_name FROM watchlists WHERE watchlist_id = NEW.watchlist_id;
+    SELECT title, poster_url INTO v_movie_title, v_movie_poster FROM movies WHERE movie_id = NEW.movie_id;
+
+    IF v_user_id IS NOT NULL THEN
+        INSERT INTO activity_logs (user_id, activity_type, target_id, metadata)
+        VALUES (
+            v_user_id,
+            'WATCHLIST_ADD',
+            NEW.movie_id,
+            jsonb_build_object(
+                'movie_id', NEW.movie_id,
+                'movie_title', v_movie_title,
+                'movie_poster', v_movie_poster,
+                'watchlist_id', NEW.watchlist_id,
+                'watchlist_name', v_watchlist_name
+            )
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_watchlist_add
+AFTER INSERT ON watchlist_items
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_log_watchlist_add();
+
+
 -- ----------------------------------------------------------------------------
 -- 5. STORED PROCEDURES & ANALYTICAL FUNCTIONS
 -- ----------------------------------------------------------------------------
 
--- FUNCTION: Smart Movie Recommendation Algorithm (Personalized Collaborative Filter)
+-- FUNCTION: Genre-Affinity & Platform Fallback Recommendation Engine
 CREATE OR REPLACE FUNCTION fn_recommend_movies(p_user_id INT, p_limit INT DEFAULT 6)
 RETURNS TABLE (
     movie_id INT,
@@ -299,39 +349,68 @@ RETURNS TABLE (
     avg_rating NUMERIC(3, 1),
     recommendation_reason TEXT
 ) AS $$
+DECLARE
+    v_affinity_count INT;
 BEGIN
-    RETURN QUERY
-    WITH UserTopGenres AS (
-        -- Step 1: Find user's favorite genres based on high ratings (rating >= 7.0)
-        SELECT mg.genre_id, COUNT(*) AS affinity_score
-        FROM reviews r
-        JOIN movie_genres mg ON r.movie_id = mg.movie_id
-        WHERE r.user_id = p_user_id AND r.rating >= 7.0
-        GROUP BY mg.genre_id
-        ORDER BY affinity_score DESC
-        LIMIT 3
-    ),
-    UnwatchedMovies AS (
-        -- Step 2: Get movies the user has not yet reviewed or watched
-        SELECT m.movie_id, m.title, m.poster_url, m.avg_rating, g.name AS genre_name
+    -- Check if user has rated films highly (rating >= 7.0)
+    SELECT COUNT(*) INTO v_affinity_count
+    FROM reviews r
+    WHERE r.user_id = p_user_id AND r.rating >= 7.0;
+
+    IF v_affinity_count > 0 THEN
+        -- Personalized Genre-Affinity Recommendations (One row per movie, deterministic)
+        RETURN QUERY
+        WITH UserTopGenres AS (
+            SELECT mg.genre_id, g.name AS genre_name, COUNT(*) AS affinity_score
+            FROM reviews r
+            JOIN movie_genres mg ON r.movie_id = mg.movie_id
+            JOIN genres g ON mg.genre_id = g.genre_id
+            WHERE r.user_id = p_user_id AND r.rating >= 7.0
+            GROUP BY mg.genre_id, g.name
+            ORDER BY affinity_score DESC
+            LIMIT 3
+        ),
+        CandidateMovies AS (
+            SELECT DISTINCT ON (m.movie_id)
+                m.movie_id,
+                m.title,
+                m.poster_url,
+                m.avg_rating,
+                m.review_count,
+                utg.genre_name
+            FROM movies m
+            JOIN movie_genres mg ON m.movie_id = mg.movie_id
+            JOIN UserTopGenres utg ON mg.genre_id = utg.genre_id
+            WHERE m.movie_id NOT IN (
+                SELECT r.movie_id FROM reviews r WHERE r.user_id = p_user_id
+            )
+            ORDER BY m.movie_id, m.avg_rating DESC
+        )
+        SELECT 
+            cm.movie_id,
+            cm.title,
+            cm.poster_url,
+            cm.avg_rating,
+            ('Recommended because you enjoy ' || cm.genre_name || ' films')::TEXT AS recommendation_reason
+        FROM CandidateMovies cm
+        ORDER BY cm.avg_rating DESC, cm.review_count DESC, cm.movie_id ASC
+        LIMIT p_limit;
+    ELSE
+        -- Cold-Start Fallback: Highest rated community favorites not yet reviewed by user
+        RETURN QUERY
+        SELECT 
+            m.movie_id,
+            m.title,
+            m.poster_url,
+            m.avg_rating,
+            ('Community Favorite: Top-rated recommendation for new cinephiles')::TEXT AS recommendation_reason
         FROM movies m
-        JOIN movie_genres mg ON m.movie_id = mg.movie_id
-        JOIN genres g ON mg.genre_id = g.genre_id
-        JOIN UserTopGenres utg ON mg.genre_id = utg.genre_id
         WHERE m.movie_id NOT IN (
             SELECT r.movie_id FROM reviews r WHERE r.user_id = p_user_id
         )
-    )
-    SELECT 
-        um.movie_id,
-        um.title,
-        um.poster_url,
-        um.avg_rating,
-        ('Recommended because you enjoy ' || um.genre_name || ' films')::TEXT AS recommendation_reason
-    FROM UnwatchedMovies um
-    GROUP BY um.movie_id, um.title, um.poster_url, um.avg_rating, um.genre_name
-    ORDER BY um.avg_rating DESC, um.movie_id
-    LIMIT p_limit;
+        ORDER BY m.avg_rating DESC, m.review_count DESC, m.movie_id ASC
+        LIMIT p_limit;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -341,7 +420,7 @@ CREATE OR REPLACE FUNCTION fn_get_user_analytics(p_user_id INT)
 RETURNS JSONB AS $$
 DECLARE
     v_total_reviews INT;
-    v_avg_rating NUMERIC(3, 2);
+    v_avg_rating NUMERIC(4, 2); -- Safe for 10.00 average!
     v_total_runtime_mins INT;
     v_total_watchlists INT;
     v_followers_count INT;
@@ -367,15 +446,15 @@ BEGIN
     SELECT COUNT(*) INTO v_following_count FROM follows WHERE follower_id = p_user_id;
 
     -- Rating distribution histogram (1-10)
-    SELECT jsonb_object_agg(bucket::TEXT, COALESCE(counts.c, 0))
+    SELECT jsonb_object_agg(b.val::TEXT, COALESCE(counts.c, 0))
     INTO v_rating_distribution
-    FROM generate_series(1, 10) AS bucket
+    FROM generate_series(1, 10) AS b(val)
     LEFT JOIN (
         SELECT FLOOR(rating)::INT AS bucket, COUNT(*) AS c
         FROM reviews
         WHERE user_id = p_user_id
         GROUP BY FLOOR(rating)
-    ) counts ON bucket = counts.bucket;
+    ) counts ON b.val = counts.bucket;
 
     -- Top genres
     SELECT jsonb_agg(genre_row)
@@ -409,13 +488,13 @@ $$ LANGUAGE plpgsql;
 -- 6. ADVANCED VIEWS & WINDOW FUNCTIONS
 -- ----------------------------------------------------------------------------
 
--- VIEW 1: Trending Movies using Bayesian Weighted Score
+-- VIEW 1: Trending Movies using Bayesian Weighted Score (True Rated Prior)
 CREATE OR REPLACE VIEW v_trending_movies AS
 WITH GlobalStats AS (
     SELECT 
-        COALESCE(AVG(avg_rating), 5.0) AS global_mean_rating,
-        3.0 AS min_reviews_threshold -- smoothing parameter
-    FROM movies
+        COALESCE(AVG(r.rating), 7.5) AS global_mean_rating,
+        3.0 AS min_reviews_threshold
+    FROM reviews r
 )
 SELECT 
     m.movie_id,
@@ -472,7 +551,7 @@ GROUP BY g.genre_id, g.name, g.slug
 ORDER BY total_movies DESC, total_reviews DESC;
 
 
--- VIEW 4: Unified Activity Feed with Entity Joins
+-- VIEW 4: Unified Activity Feed with Safe Entity Joins (No Polymorphic Collision)
 CREATE OR REPLACE VIEW v_recent_activity_feed AS
 SELECT 
     al.log_id,
@@ -482,11 +561,33 @@ SELECT
     u.username,
     u.display_name,
     u.avatar_url,
+    al.target_id,
     al.metadata,
     m.movie_id,
-    m.title AS movie_title,
-    m.poster_url AS movie_poster
+    COALESCE(m.title, al.metadata->>'movie_title') AS movie_title,
+    COALESCE(m.poster_url, al.metadata->>'movie_poster') AS movie_poster,
+    w.watchlist_id,
+    COALESCE(w.name, al.metadata->>'watchlist_name') AS watchlist_name,
+    tu.user_id AS target_user_id,
+    tu.username AS target_username,
+    tu.display_name AS target_display_name
 FROM activity_logs al
 JOIN users u ON al.user_id = u.user_id
-LEFT JOIN movies m ON al.target_id = m.movie_id
+LEFT JOIN movies m ON (
+    CASE 
+        WHEN al.activity_type IN ('NEW_REVIEW', 'WATCHLIST_ADD') THEN al.target_id = m.movie_id
+        WHEN al.metadata ? 'movie_id' THEN (al.metadata->>'movie_id')::INT = m.movie_id
+        ELSE FALSE
+    END
+)
+LEFT JOIN watchlists w ON (
+    CASE 
+        WHEN al.activity_type = 'CREATE_LIST' THEN al.target_id = w.watchlist_id
+        WHEN al.metadata ? 'watchlist_id' THEN (al.metadata->>'watchlist_id')::INT = w.watchlist_id
+        ELSE FALSE
+    END
+)
+LEFT JOIN users tu ON (
+    al.activity_type = 'FOLLOW' AND al.target_id = tu.user_id
+)
 ORDER BY al.created_at DESC;

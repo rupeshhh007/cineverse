@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, X, Check } from 'lucide-react';
+import Link from 'next/link';
+import { Star, X, Check, AlertCircle, LogIn } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -12,12 +14,14 @@ interface RatingModalProps {
 }
 
 export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSuccess }: RatingModalProps) {
+  const { user } = useAuth();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [containsSpoilers, setContainsSpoilers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -26,36 +30,38 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
     if (rating === 0) return;
 
     setIsSubmitting(true);
-    try {
-      const currentUserId = typeof window !== 'undefined'
-        ? parseInt(localStorage.getItem('cineverse_current_user') || '1', 10)
-        : 1;
+    setError(null);
 
+    try {
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUserId,
           movieId,
           rating,
-          reviewText,
-          containsSpoilers,
+          reviewText: reviewText.trim(),
+          hasSpoilers: containsSpoilers,
+          userId: user?.user_id,
         }),
       });
 
-      if (res.ok) {
-        setShowSuccess(true);
-        onSuccess();
-        setTimeout(() => {
-          setShowSuccess(false);
-          onClose();
-          setRating(0);
-          setReviewText('');
-          setContainsSpoilers(false);
-        }, 2000);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save review');
       }
-    } catch (err) {
-      console.error(err);
+
+      setShowSuccess(true);
+      onSuccess();
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+        setRating(0);
+        setReviewText('');
+        setContainsSpoilers(false);
+        setError(null);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while logging your rating');
     } finally {
       setIsSubmitting(false);
     }
@@ -73,16 +79,53 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
             <h3 className="text-xl font-bold text-white tracking-tight">Logged Successfully</h3>
             <p className="text-sm text-gray-400">Database triggers executed.</p>
           </div>
+        ) : !user ? (
+          <div className="p-8 text-center space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-900">
+              <h2 className="text-lg font-bold text-white tracking-tight">Sign In Required</h2>
+              <button onClick={onClose} className="p-2 text-gray-500 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-400">
+              You must be signed in to rate or review <span className="text-white font-medium">"{movieTitle}"</span>.
+            </p>
+            <div className="pt-2 flex flex-col gap-3">
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="w-full py-3.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <LogIn className="w-4 h-4" /> Sign In to Continue
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-xs text-gray-500 hover:text-white py-1 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         ) : (
           <>
             <div className="flex items-center justify-between p-6 border-b border-gray-900">
-              <h2 className="text-xl font-bold text-white tracking-tight">I Watched...</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white tracking-tight">I Watched...</h2>
+                <p className="text-xs text-gray-500 truncate max-w-[280px]">{movieTitle}</p>
+              </div>
               <button onClick={onClose} className="p-2 text-gray-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {error && (
+                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               
               <div>
                 <div className="text-sm font-medium text-gray-400 mb-2">Rating</div>

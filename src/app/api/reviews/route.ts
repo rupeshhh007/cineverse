@@ -62,25 +62,48 @@ export async function GET(request: NextRequest) {
   }
 }
 
+import { getAuthenticatedUser } from '@/lib/auth';
+
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUser(request);
     const body = await request.json();
-    const { userId, movieId, rating, reviewText, hasSpoilers } = body;
+    const { movieId, rating, reviewText, hasSpoilers, containsSpoilers } = body;
 
-    if (!userId || !movieId || rating === undefined || !reviewText) {
+    const effectiveUserId = authUser?.user_id || (body.userId ? parseInt(body.userId, 10) : null);
+
+    if (!effectiveUserId) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, movieId, rating, reviewText' },
+        { error: 'Authentication required to rate or review a film' },
+        { status: 401 }
+      );
+    }
+
+    const parsedMovieId = parseInt(movieId, 10);
+    if (isNaN(parsedMovieId)) {
+      return NextResponse.json(
+        { error: 'Valid movieId is required' },
+        { status: 400 }
+      );
+    }
+
+    if (rating === undefined || rating === null) {
+      return NextResponse.json(
+        { error: 'Rating is required' },
         { status: 400 }
       );
     }
 
     const numRating = parseFloat(rating);
-    if (numRating < 1.0 || numRating > 10.0) {
+    if (isNaN(numRating) || numRating < 1.0 || numRating > 10.0) {
       return NextResponse.json(
         { error: 'Rating must be between 1.0 and 10.0' },
         { status: 400 }
       );
     }
+
+    const cleanReviewText = typeof reviewText === 'string' ? reviewText.trim() : '';
+    const cleanSpoilers = Boolean(hasSpoilers ?? containsSpoilers ?? false);
 
     // Upsert review (Postgres trigger trg_update_movie_rating will auto-recalc movie stats!)
     const sql = `
@@ -96,17 +119,17 @@ export async function POST(request: NextRequest) {
     `;
 
     const result = await query(sql, [
-      userId,
-      movieId,
+      effectiveUserId,
+      parsedMovieId,
       numRating,
-      reviewText,
-      Boolean(hasSpoilers),
+      cleanReviewText,
+      cleanSpoilers,
     ]);
 
     // Fetch the updated movie stats to show the trigger's immediate effect!
     const movieCheck = await query(
       `SELECT movie_id, title, avg_rating, review_count FROM movies WHERE movie_id = $1;`,
-      [movieId]
+      [parsedMovieId]
     );
 
     return NextResponse.json({

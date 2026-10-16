@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
+import { getAuthenticatedUser } from '@/lib/auth';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -13,6 +15,9 @@ export async function GET(
   }
 
   try {
+    const authUser = await getAuthenticatedUser(request);
+    const isOwnProfile = authUser?.user_id === userId;
+
     // 1. Get User Profile
     const userSql = `
       SELECT 
@@ -31,6 +36,11 @@ export async function GET(
 
     if (userRes.rows.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const profile = { ...userRes.rows[0] };
+    if (!isOwnProfile) {
+      delete profile.email;
     }
 
     // 2. Call PL/pgSQL Function: fn_get_user_analytics
@@ -65,11 +75,11 @@ export async function GET(
       const recsRes = await query(recsSql, [userId]);
       recommendations = recsRes.rows;
     } catch {
-      // fallback if user has no reviews yet
+      // fallback if error
     }
 
     return NextResponse.json({
-      user: userRes.rows[0],
+      user: profile,
       analytics: analyticsRes.rows[0]?.analytics || {},
       reviews: reviewsRes.rows,
       recommendations,

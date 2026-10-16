@@ -38,7 +38,7 @@ export async function GET() {
     const tableNames = [
       'users', 'genres', 'movies', 'movie_genres', 'people', 
       'movie_cast', 'reviews', 'review_likes', 'watchlists', 
-      'watchlist_items', 'follows', 'activity_logs'
+      'watchlist_items', 'follows', 'activity_logs', 'app_meta'
     ];
 
     for (const tbl of tableNames) {
@@ -72,6 +72,13 @@ export async function GET() {
         events: 'AFTER INSERT / DELETE',
         purpose: 'Syncs total like counters on reviews table.',
         function: 'fn_trg_update_review_likes()'
+      },
+      {
+        name: 'trg_log_watchlist_add',
+        table: 'watchlist_items',
+        events: 'AFTER INSERT',
+        purpose: 'Automatically records a social feed audit event when a film is bookmarked.',
+        function: 'fn_trg_log_watchlist_activity()'
       }
     ];
 

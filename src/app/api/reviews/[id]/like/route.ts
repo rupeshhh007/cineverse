@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
@@ -11,8 +12,26 @@ export async function POST(
   }
 
   try {
-    const body = await request.json();
-    const userId = parseInt(body.userId, 10) || 1;
+    const authUser = await getAuthenticatedUser(request);
+    let userId = authUser?.user_id;
+
+    if (!userId) {
+      try {
+        const body = await request.json();
+        if (body?.userId) {
+          userId = parseInt(body.userId, 10);
+        }
+      } catch {
+        // body may be empty
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required to like reviews' },
+        { status: 401 }
+      );
+    }
 
     // Check if like exists
     const checkSql = `SELECT 1 FROM review_likes WHERE user_id = $1 AND review_id = $2;`;

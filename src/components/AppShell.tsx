@@ -1,39 +1,33 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import DbmsInspectorDrawer from './DbmsInspectorDrawer';
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+function AppShellContent({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  // Login page renders immediately without auth check
   const isLoginPage = pathname === '/login';
 
+  // Perform route redirection inside useEffect (NEVER during render)
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem('cineverse_user');
-      setIsAuthenticated(!!user);
-    };
-    
-    checkAuth();
-    
-    // Listen for storage changes (sign in/out from other tabs or dispatched events)
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, []);
+    if (!isLoading && !user && !isLoginPage) {
+      router.push('/login');
+    }
+  }, [isLoading, user, isLoginPage, router]);
 
-  // Login page: render children directly (no navbar/footer)
+  // Login page: render children directly (no chrome)
   if (isLoginPage) {
     return <>{children}</>;
   }
 
   // Still loading auth state
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-gray-800 border-t-white rounded-full animate-spin"></div>
@@ -41,10 +35,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not authenticated: redirect to login
-  if (!isAuthenticated) {
-    // Use replace to avoid back-button loops
-    router.replace('/login');
+  // Not authenticated: render blank loading while useEffect redirect executes
+  if (!user) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-gray-800 border-t-white rounded-full animate-spin"></div>
@@ -60,5 +52,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Footer />
       <DbmsInspectorDrawer />
     </>
+  );
+}
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <AppShellContent>{children}</AppShellContent>
+    </AuthProvider>
   );
 }

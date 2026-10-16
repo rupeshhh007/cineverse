@@ -19,9 +19,14 @@ import {
 } from 'lucide-react';
 import { User, UserAnalytics, Review } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
+import { useAuth } from '@/lib/AuthContext';
+import ErrorMessage from '@/components/ErrorMessage';
+import { useRouter } from 'next/navigation';
 
 export default function UserProfilePage() {
   const params = useParams();
+  const router = useRouter();
+  const { user: currentUser } = useAuth();
   const userId = params.id as string;
 
   const [user, setUser] = useState<User | null>(null);
@@ -29,23 +34,28 @@ export default function UserProfilePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Follow State
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [isFollowUpdating, setIsFollowUpdating] = useState(false);
 
-  const currentUserId = typeof window !== 'undefined'
-    ? parseInt(localStorage.getItem('cineverse_current_user') || '1', 10)
-    : 1;
-
-  const isOwnProfile = currentUserId === parseInt(userId, 10);
+  const isOwnProfile = Boolean(currentUser && currentUser.user_id === parseInt(userId, 10));
 
   const fetchUserProfile = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/users/${userId}`);
       const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 404) {
+          setUser(null);
+          return;
+        }
+        throw new Error(data.error || 'Failed to load user profile');
+      }
       setUser(data.user);
       setAnalytics(data.analytics);
       setReviews(data.reviews || []);
@@ -53,16 +63,16 @@ export default function UserProfilePage() {
       setFollowersCount(data.analytics?.followers_count || 0);
 
       // Check follow status
-      if (!isOwnProfile) {
-        const followRes = await fetch(`/api/users/${userId}/follow?currentUserId=${currentUserId}`);
+      if (!isOwnProfile && currentUser) {
+        const followRes = await fetch(`/api/users/${userId}/follow?currentUserId=${currentUser.user_id}`);
         const followData = await followRes.json();
         setIsFollowing(followData.isFollowing);
         if (followData.followersCount !== undefined) {
           setFollowersCount(followData.followersCount);
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || 'Error loading profile');
     } finally {
       setIsLoading(false);
     }
@@ -70,17 +80,21 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (userId) fetchUserProfile();
-  }, [userId]);
+  }, [userId, currentUser]);
 
   const handleToggleFollow = async () => {
     if (isOwnProfile) return;
+    if (!currentUser) {
+      router.push('/login');
+      return;
+    }
     setIsFollowUpdating(true);
 
     try {
       const res = await fetch(`/api/users/${userId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentUserId }),
+        body: JSON.stringify({ currentUserId: currentUser.user_id }),
       });
       const data = await res.json();
       if (data.success) {
@@ -99,6 +113,19 @@ export default function UserProfilePage() {
       <div className="max-w-7xl mx-auto px-4 py-16 animate-pulse space-y-6">
         <div className="h-48 bg-gray-900 rounded-3xl" />
         <div className="h-32 bg-gray-900 rounded-3xl" />
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 space-y-4">
+        <ErrorMessage message={error} onRetry={fetchUserProfile} />
+        <div className="text-center">
+          <Link href="/" className="text-gray-400 hover:underline text-xs">
+            Return to Discover
+          </Link>
+        </div>
       </div>
     );
   }

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:reset": "node scripts/db-reset.js",
+    "db:init": "node scripts/db-reset.js",
+    "test": "node scripts/qa-verify.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.14",

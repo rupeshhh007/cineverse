@@ -14,14 +14,14 @@ INSERT INTO genres (genre_id, name, slug, icon_name) VALUES
 (8, 'Romance', 'romance', 'heart')
 ON CONFLICT (genre_id) DO NOTHING;
 
--- 2. SEED USERS
+-- 2. SEED USERS (Default password for all seeded accounts is: password123)
 INSERT INTO users (user_id, username, email, password_hash, display_name, bio, avatar_url, banner_url) VALUES
-(1, 'alex_cine', 'alex@cineverse.io', 'hashed_pw_1', 'Alex Rivera', 'Filmmaker & cinema enthusiast. Watching everything from 70s neo-noir to modern sci-fi.', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200'),
-(2, 'sophia_film', 'sophia@cineverse.io', 'hashed_pw_2', 'Sophia Chen', 'Film critic & festival juror. Huge fan of Denis Villeneuve and Bong Joon-ho.', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200'),
-(3, 'marcus_v', 'marcus@cineverse.io', 'hashed_pw_3', 'Marcus Vance', 'Screenwriter in Los Angeles. Dissecting cinematography and narrative structure.', 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150', 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200'),
-(4, 'elena_r', 'elena@cineverse.io', 'hashed_pw_4', 'Elena Rostov', 'Visual effects artist & sound designer. Audio-visual immersion is everything.', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=1200'),
-(5, 'david_m', 'david@cineverse.io', 'hashed_pw_5', 'David Miller', 'Retro movie collector & popcorn movie lover. Nolan and Tarantino buff.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=1200'),
-(6, 'chloe_b', 'chloe@cineverse.io', 'hashed_pw_6', 'Chloe Bennett', 'Animation geek and indie drama specialist. Studio Ghibli forever.', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', 'https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?w=1200')
+(1, 'alex_cine', 'alex@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'Alex Rivera', 'Filmmaker & cinema enthusiast. Watching everything from 70s neo-noir to modern sci-fi.', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200'),
+(2, 'sophia_film', 'sophia@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'Sophia Chen', 'Film critic & festival juror. Huge fan of Denis Villeneuve and Bong Joon-ho.', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1200'),
+(3, 'marcus_v', 'marcus@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'Marcus Vance', 'Screenwriter in Los Angeles. Dissecting cinematography and narrative structure.', 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150', 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200'),
+(4, 'elena_r', 'elena@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'Elena Rostov', 'Visual effects artist & sound designer. Audio-visual immersion is everything.', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150', 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=1200'),
+(5, 'david_m', 'david@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'David Miller', 'Retro movie collector & popcorn movie lover. Nolan and Tarantino buff.', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=1200'),
+(6, 'chloe_b', 'chloe@cineverse.io', 'scrypt:a9c1e0d3b4f5e6a7b8c9d0e1f2a3b4c5:b5aca4f901fde61bf3b6f717b8689609c4dc177d3b3b37a5e87641825edacb178bc4577c685cbbec7967ef206ca3588062552c2f368f3777ce1d75c0ea1ff801', 'Chloe Bennett', 'Animation geek and indie drama specialist. Studio Ghibli forever.', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150', 'https://images.unsplash.com/photo-1524712245354-2c4e5e7121c0?w=1200')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- 3. SEED MOVIES
@@ -603,7 +603,21 @@ INSERT INTO follows (follower_id, following_id) VALUES
 (6, 1), (6, 2), (6, 4)
 ON CONFLICT (follower_id, following_id) DO NOTHING;
 
--- 10. RUN TRIGGER UPDATE SIMULATION FOR INITIAL SEED
+-- 10. SEED REVIEW LIKES (Normalized Source of Truth)
+INSERT INTO review_likes (user_id, review_id) VALUES
+(1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 10), (1, 12), (1, 15), (1, 18), (1, 20), (1, 25), (1, 28), (1, 30),
+(2, 1), (2, 3), (2, 5), (2, 8), (2, 11), (2, 14), (2, 17), (2, 19), (2, 22), (2, 26), (2, 27), (2, 29),
+(3, 1), (3, 2), (3, 4), (3, 6), (3, 9), (3, 13), (3, 16), (3, 20), (3, 24), (3, 28), (3, 30),
+(4, 1), (4, 2), (4, 5), (4, 7), (4, 10), (4, 15), (4, 18), (4, 21), (4, 25), (4, 27),
+(5, 2), (5, 4), (5, 6), (5, 8), (5, 12), (5, 14), (5, 16), (5, 19), (5, 23), (5, 29),
+(6, 1), (6, 3), (6, 5), (6, 7), (6, 9), (6, 11), (6, 13), (6, 17), (6, 22), (6, 26), (6, 28)
+ON CONFLICT (user_id, review_id) DO NOTHING;
+
+-- Synchronize reviews.likes_count with normalized review_likes table
+UPDATE reviews r
+SET likes_count = (SELECT COUNT(*) FROM review_likes rl WHERE rl.review_id = r.review_id);
+
+-- 11. RUN TRIGGER UPDATE SIMULATION FOR INITIAL SEED
 UPDATE movies m
 SET 
     avg_rating = sub.avg_r,
@@ -614,3 +628,20 @@ FROM (
     GROUP BY movie_id
 ) sub
 WHERE m.movie_id = sub.movie_id;
+
+-- 12. ADVANCE SERIAL SEQUENCES (Fixes sequence corruption when explicit IDs are seeded)
+SELECT setval(pg_get_serial_sequence('users', 'user_id'), COALESCE((SELECT MAX(user_id) FROM users), 1));
+SELECT setval(pg_get_serial_sequence('genres', 'genre_id'), COALESCE((SELECT MAX(genre_id) FROM genres), 1));
+SELECT setval(pg_get_serial_sequence('movies', 'movie_id'), COALESCE((SELECT MAX(movie_id) FROM movies), 1));
+SELECT setval(pg_get_serial_sequence('people', 'person_id'), COALESCE((SELECT MAX(person_id) FROM people), 1));
+SELECT setval(pg_get_serial_sequence('reviews', 'review_id'), COALESCE((SELECT MAX(review_id) FROM reviews), 1));
+SELECT setval(pg_get_serial_sequence('watchlists', 'watchlist_id'), COALESCE((SELECT MAX(watchlist_id) FROM watchlists), 1));
+SELECT setval(pg_get_serial_sequence('activity_logs', 'log_id'), COALESCE((SELECT MAX(log_id) FROM activity_logs), 1));
+
+-- 13. RECORD APPLICATION METADATA & SCHEMA VERSION
+INSERT INTO app_meta (key, value) VALUES 
+('schema_version', '1.1.0'),
+('seed_version', '1.1.0'),
+('seeded_at', CURRENT_TIMESTAMP::text)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP;
+

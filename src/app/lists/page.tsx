@@ -2,13 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ListOrdered, Plus, Heart, Film, X, Check, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ListOrdered, Plus, Heart, Film, X, Check, Loader2, LogIn, AlertCircle } from 'lucide-react';
 import { Watchlist, Movie } from '@/lib/types';
+import { useAuth } from '@/lib/AuthContext';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function ListsPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [lists, setLists] = useState<Watchlist[]>([]);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   // Form State
@@ -16,19 +22,18 @@ export default function ListsPage() {
   const [description, setDescription] = useState('');
   const [selectedMovieIds, setSelectedMovieIds] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const currentUserId = typeof window !== 'undefined'
-    ? parseInt(localStorage.getItem('cineverse_current_user') || '1', 10)
-    : 1;
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const fetchLists = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/lists');
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load watchlists');
       setLists(data.lists || []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || 'Error loading watchlists');
     } finally {
       setIsLoading(false);
     }
@@ -59,27 +64,37 @@ export default function ListsPage() {
     e.preventDefault();
     if (!listName.trim()) return;
 
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       const res = await fetch('/api/lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUserId,
+          userId: user.user_id,
           name: listName.trim(),
           description: description.trim(),
           movieIds: selectedMovieIds,
         }),
       });
-      if (res.ok) {
-        setIsCreateModalOpen(false);
-        setListName('');
-        setDescription('');
-        setSelectedMovieIds([]);
-        fetchLists();
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create list');
       }
-    } catch (err) {
-      console.error(err);
+
+      setIsCreateModalOpen(false);
+      setListName('');
+      setDescription('');
+      setSelectedMovieIds([]);
+      fetchLists();
+    } catch (err: any) {
+      setSubmitError(err.message || 'Error creating list');
     } finally {
       setIsSubmitting(false);
     }
@@ -110,6 +125,13 @@ export default function ListsPage() {
           <span>Create New List</span>
         </button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mt-6">
+          <ErrorMessage message={error} onRetry={fetchLists} />
+        </div>
+      )}
 
       {/* Lists Grid */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -202,6 +224,12 @@ export default function ListsPage() {
             </div>
 
             <form onSubmit={handleCreateList} className="space-y-4">
+              {submitError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-semibold text-gray-400 block mb-1">
                   List Title

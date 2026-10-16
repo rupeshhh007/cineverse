@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { Search, Menu, X, User, Film } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+import { useAuth } from '@/lib/AuthContext';
+
 export default function Navbar() {
+  const { user: currentUser, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const router = useRouter();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -21,22 +23,6 @@ export default function Navbar() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const loadUser = () => {
-      const stored = localStorage.getItem('cineverse_user');
-      if (stored) {
-        try {
-          setCurrentUser(JSON.parse(stored));
-        } catch (e) {}
-      } else {
-        setCurrentUser(null);
-      }
-    };
-    loadUser();
-    window.addEventListener('storage', loadUser);
-    return () => window.removeEventListener('storage', loadUser);
   }, []);
 
   useEffect(() => {
@@ -135,13 +121,9 @@ export default function Navbar() {
                         Profile
                       </Link>
                       <button 
-                        onClick={() => {
-                          localStorage.removeItem('cineverse_user');
-                          localStorage.removeItem('cineverse_current_user');
-                          setCurrentUser(null);
+                        onClick={async () => {
                           setIsProfileMenuOpen(false);
-                          window.dispatchEvent(new Event('storage'));
-                          router.push('/login');
+                          await logout();
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-900 transition-colors"
                       >

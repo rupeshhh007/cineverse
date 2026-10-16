@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Play, Star, Bookmark, Share2 } from 'lucide-react';
+import { Play, Star, Bookmark, Share2, ChevronLeft } from 'lucide-react';
 import { Movie, Person, Review } from '@/lib/types';
 import TrailerModal from '@/components/TrailerModal';
 import AddToWatchlistModal from '@/components/AddToWatchlistModal';
 import RatingModal from '@/components/RatingModal';
+import ErrorMessage from '@/components/ErrorMessage';
 
 export default function MovieDetailsPage() {
   const params = useParams();
@@ -16,26 +18,37 @@ export default function MovieDetailsPage() {
   const [cast, setCast] = useState<Person[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modals
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
   const [isRatingOpen, setIsRatingOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchMovieData = async () => {
-      try {
-        const res = await fetch(`/api/movies/${movieId}`);
-        const data = await res.json();
-        setMovie(data.movie);
-        setCast(data.cast || []);
-        setReviews(data.reviews || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
+  const fetchMovieData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/movies/${movieId}`);
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 404) {
+          setMovie(null);
+          return;
+        }
+        throw new Error(data.error || 'Failed to load movie details');
       }
-    };
+      setMovie(data.movie);
+      setCast(data.cast || []);
+      setReviews(data.reviews || []);
+    } catch (err: any) {
+      setError(err.message || 'Error communicating with database');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (movieId) fetchMovieData();
   }, [movieId]);
 
@@ -43,17 +56,44 @@ export default function MovieDetailsPage() {
     fetch(`/api/movies/${movieId}`)
       .then(res => res.json())
       .then(data => {
-        setMovie(data.movie);
-        setReviews(data.reviews || []);
-      });
+        if (data.movie) {
+          setMovie(data.movie);
+          setReviews(data.reviews || []);
+        }
+      })
+      .catch((err) => console.error(err));
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-black flex items-center justify-center text-white text-sm tracking-widest uppercase">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <div className="text-white text-xs tracking-widest uppercase font-mono">Loading Film Details...</div>
+      </div>
+    );
+  }
+
+  if (error && !movie) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 space-y-4 max-w-xl mx-auto">
+        <ErrorMessage message={error} onRetry={fetchMovieData} />
+        <Link href="/" className="text-gray-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+          <ChevronLeft className="w-4 h-4" /> Return to Discover
+        </Link>
+      </div>
+    );
   }
 
   if (!movie) {
-    return <div className="min-h-screen bg-black flex items-center justify-center text-white text-sm tracking-widest uppercase">Movie Not Found</div>;
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 space-y-4">
+        <h1 className="text-2xl font-bold text-white tracking-tight">Movie Not Found</h1>
+        <p className="text-xs text-gray-500">The requested film ID does not exist in the database catalog.</p>
+        <Link href="/" className="text-gray-400 hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+          <ChevronLeft className="w-4 h-4" /> Return to Discover
+        </Link>
+      </div>
+    );
   }
 
   return (

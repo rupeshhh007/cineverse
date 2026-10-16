@@ -63,44 +63,72 @@ export async function GET(request: NextRequest) {
   }
 }
 
+import { getAuthenticatedUser } from '@/lib/auth';
+import { withTransaction } from '@/lib/db';
+
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUser(request);
     const body = await request.json();
-    const { userId, name, description, isPublic, movieIds } = body;
+    const { name, description, isPublic, movieIds } = body;
 
-    if (!userId || !name) {
-      return NextResponse.json({ error: 'Missing userId or list name' }, { status: 400 });
+    const effectiveUserId = authUser?.user_id || (body.userId ? parseInt(body.userId, 10) : null);
+
+    if (!effectiveUserId) {
+      return NextResponse.json(
+        { error: 'Authentication required to create a list' },
+        { status: 401 }
+      );
     }
 
-    // 1. Insert watchlist
-    const insertListSql = `
-      INSERT INTO watchlists (user_id, name, description, is_public)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;
-    `;
-    const listRes = await query(insertListSql, [
-      userId,
-      name,
-      description || '',
-      isPublic !== false,
-    ]);
-    const newList = listRes.rows[0];
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'List name is required' }, { status: 400 });
+    }
 
-    // 2. Insert movie items if provided
-    if (Array.isArray(movieIds) && movieIds.length > 0) {
-      for (const mid of movieIds) {
-        await query(
-          `INSERT INTO watchlist_items (watchlist_id, movie_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`,
-          [newList.watchlist_id, mid]
-        );
+    const trimmedName = name.trim();
+    const trimmedDesc = typeof description === 'string' ? description.trim() : '';
+
+    // Atomic transaction: create watchlist + insert items + record activity log
+    const newList = await withTransaction(async (client) => {
+      // 1. Insert watchlist
+      const insertListSql = `
+        INSERT INTO watchlists (user_id, name, description, is_public)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *;
+      `;
+      const listRes = await client.query(insertListSql, [
+        effectiveUserId,
+        trimmedName,
+        trimmedDesc,
+        isPublic !== false,
+      ]);
+      const createdList = listRes.rows[0];
+
+      // 2. Insert movie items if provided
+      if (Array.isArray(movieIds) && movieIds.length > 0) {
+        for (const mid of movieIds) {
+          const parsedMid = parseInt(mid, 10);
+          if (!isNaN(parsedMid)) {
+            await client.query(
+              `INSERT INTO watchlist_items (watchlist_id, movie_id) VALUES ($1, $2) ON CONFLICT DO NOTHING;`,
+              [createdList.watchlist_id, parsedMid]
+            );
+          }
+        }
       }
-    }
 
-    // 3. Log activity
-    await query(
-      `INSERT INTO activity_logs (user_id, activity_type, target_id, metadata) VALUES ($1, 'CREATE_LIST', $2, $3);`,
-      [userId, newList.watchlist_id, JSON.stringify({ list_name: name, movie_count: movieIds?.length || 0 })]
-    );
+      // 3. Log activity
+      await client.query(
+        `INSERT INTO activity_logs (user_id, activity_type, target_id, metadata) VALUES ($1, 'CREATE_LIST', $2, $3);`,
+        [
+          effectiveUserId,
+          createdList.watchlist_id,
+          JSON.stringify({ list_name: trimmedName, movie_count: movieIds?.length || 0 }),
+        ]
+      );
+
+      return createdList;
+    });
 
     return NextResponse.json({ success: true, list: newList });
   } catch (error: any) {
