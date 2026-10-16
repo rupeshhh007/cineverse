@@ -2,9 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --cv-ink: #0b0e0a;
+  --cv-shell: #161d15;
+  --cv-sidebar: #1d241c;
+  --cv-surface: #222d22;
+  --cv-surface-2: #152016;
+  --cv-border: #3d4b39;
+  --cv-text: #efece3;
+  --cv-muted: #aeb9a8;
+  --cv-moss: #a9cc92;
+  --cv-vermilion: #f2685e;
+  --cv-danger: #d56b70;
+}
+
 @layer base {
   body {
-    @apply bg-black text-white;
+    background-color: #0b0e0a;
+    color: #efece3;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 

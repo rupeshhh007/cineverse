@@ -17,9 +17,10 @@ import {
   Sparkles,
   AlertCircle,
   CheckCircle2,
-  GitBranch,
-  Key,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert,
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 
 const PRESET_QUERIES = [
@@ -197,60 +198,70 @@ export default function DbmsConsolePage() {
     document.body.removeChild(link);
   };
 
+  // Keyboard shortcut ⌘+Enter to run query
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!isExecuting && sqlInput.trim()) {
+        handleExecuteSql();
+      }
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
+    <div className="space-y-6 pb-20">
       
-      {/* Header */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gray-900 border border-gray-800 space-y-4 shadow-xl">
+      {/* Header Banner */}
+      <div className="p-6 sm:p-7 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold uppercase tracking-wider">
-              <Database className="w-3.5 h-3.5 text-gray-400" /> PostgreSQL Engine & Architecture
+            <div className="flex items-center gap-2 text-cv-muted text-[11px] font-mono uppercase tracking-widest">
+              <Database className="w-3.5 h-3.5 text-cv-moss" /> The Projection Room / PostgreSQL Engine
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-              DBMS Query & Architecture Console
+            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-cv-text mt-1">
+              Database Query & Architecture Console
             </h1>
-            <p className="text-xs text-gray-400 mt-1 max-w-2xl">
-              Inspect normalized 3NF schemas, execute live parameterized queries with millisecond profiling, and test PostgreSQL triggers in real time.
+            <p className="text-xs text-cv-muted mt-1 max-w-2xl">
+              Inspect normalized 3NF schemas, execute live parameterized queries with millisecond profiling, and verify PostgreSQL triggers in real time.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="px-3 py-1.5 rounded-xl bg-cv-surface border border-cv-moss/30 text-cv-moss text-xs font-mono font-semibold flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cv-moss animate-pulse" />
               <span>PostgreSQL 16 Engine Active</span>
             </div>
           </div>
         </div>
 
-        {/* Schema Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-gray-900 text-xs">
-          <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
-            <div className="text-gray-500">Schema Structure</div>
-            <div className="text-base font-bold text-white font-mono mt-0.5">13 Tables (3NF)</div>
+        {/* Schema Architecture Counters */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-cv-border/20 text-xs">
+          <div className="p-3 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+            <div className="text-cv-muted text-[11px]">Schema Model</div>
+            <div className="text-sm sm:text-base font-bold text-cv-text font-mono mt-0.5">13 Tables (3NF)</div>
           </div>
-          <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
-            <div className="text-gray-500">Triggers Registered</div>
-            <div className="text-base font-bold text-white font-mono mt-0.5">4 PL/pgSQL Triggers</div>
+          <div className="p-3 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+            <div className="text-cv-muted text-[11px]">Registered Triggers</div>
+            <div className="text-sm sm:text-base font-bold text-cv-text font-mono mt-0.5">4 PL/pgSQL Triggers</div>
           </div>
-          <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
-            <div className="text-gray-500">Stored Functions</div>
-            <div className="text-base font-bold text-white font-mono mt-0.5">2 Functions</div>
+          <div className="p-3 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+            <div className="text-cv-muted text-[11px]">Stored Procedures</div>
+            <div className="text-sm sm:text-base font-bold text-cv-text font-mono mt-0.5">2 Functions</div>
           </div>
-          <div className="p-3 rounded-xl bg-gray-900 border border-gray-900">
-            <div className="text-gray-500">Analytical Views</div>
-            <div className="text-base font-bold text-gray-400 font-mono mt-0.5">4 SQL Views</div>
+          <div className="p-3 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+            <div className="text-cv-muted text-[11px]">Analytical Views</div>
+            <div className="text-sm sm:text-base font-bold text-cv-muted font-mono mt-0.5">4 SQL Views</div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 mt-6 border-b border-gray-900 pb-3 overflow-x-auto">
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-cv-border/30 pb-3 overflow-x-auto">
         {[
-          { id: 'console', label: 'Interactive SQL Console', icon: Terminal },
-          { id: 'triggers', label: 'Trigger Demonstrator', icon: Zap },
-          { id: 'schema', label: 'Schema & ER Map', icon: TableIcon },
-          { id: 'catalog', label: 'Procedures & Views', icon: Layers },
+          { id: 'console', label: 'Query editor', icon: Terminal },
+          { id: 'triggers', label: 'Trigger lab', icon: Zap },
+          { id: 'schema', label: 'Schema & ER', icon: TableIcon },
+          { id: 'catalog', label: 'Functions & views', icon: Layers },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -258,10 +269,10 @@ export default function DbmsConsolePage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                 isActive
-                  ? 'bg-white text-black font-bold'
-                  : 'bg-gray-900 border border-gray-900 text-gray-400 hover:text-black hover:bg-gray-800'
+                  ? 'bg-cv-moss text-cv-ink font-bold'
+                  : 'bg-cv-shell border border-cv-border/30 text-cv-muted hover:text-cv-text hover:bg-cv-surface'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -273,12 +284,12 @@ export default function DbmsConsolePage() {
 
       {/* TAB 1: SQL CONSOLE */}
       {activeTab === 'console' && (
-        <div className="mt-6 space-y-4 animate-fade-in">
+        <div className="space-y-4">
           
           {/* Preset Selector */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gray-900 border border-gray-900">
-            <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-cv-shell border border-cv-border/30">
+            <div className="flex items-center gap-2 text-xs font-semibold text-cv-text">
+              <Sparkles className="w-3.5 h-3.5 text-cv-moss" />
               <span>Grading Query Presets:</span>
             </div>
             <select
@@ -286,7 +297,7 @@ export default function DbmsConsolePage() {
                 const found = PRESET_QUERIES.find((q) => q.name === e.target.value);
                 if (found) setSqlInput(found.sql);
               }}
-              className="bg-gray-800 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white font-medium"
+              className="bg-cv-surface border border-cv-border/50 rounded-xl px-3 py-1.5 text-xs text-cv-text focus:outline-none focus:border-cv-moss font-mono"
             >
               {PRESET_QUERIES.map((q) => (
                 <option key={q.name} value={q.name}>
@@ -296,64 +307,80 @@ export default function DbmsConsolePage() {
             </select>
           </div>
 
-          {/* Editor */}
-          <div className="rounded-3xl bg-gray-900 border border-gray-800 overflow-hidden shadow-xl">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-900">
-              <div className="flex items-center gap-2 font-mono text-xs text-gray-500">
-                <Terminal className="w-3.5 h-3.5 text-gray-400" />
+          {/* Editor Container */}
+          <div className="rounded-2xl bg-cv-shell border border-cv-border/40 overflow-hidden shadow-xl">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-cv-surface/80 border-b border-cv-border/30">
+              <div className="flex items-center gap-2 font-mono text-xs text-cv-muted">
+                <Terminal className="w-3.5 h-3.5 text-cv-moss" />
                 <span>PostgreSQL SQL Editor</span>
               </div>
-              <button
-                onClick={() => copyToClipboard(sqlInput)}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
-              >
-                {copiedQuery ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedQuery ? 'Copied' : 'Copy'}</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-mono text-cv-muted hidden sm:inline">
+                  Press ⌘+Enter to execute
+                </span>
+                <button
+                  onClick={() => copyToClipboard(sqlInput)}
+                  className="flex items-center gap-1 text-xs text-cv-muted hover:text-cv-text transition-colors"
+                >
+                  {copiedQuery ? <Check className="w-3.5 h-3.5 text-cv-moss" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedQuery ? 'Copied' : 'Copy SQL'}</span>
+                </button>
+              </div>
             </div>
 
             <textarea
-              rows={7}
+              rows={8}
               value={sqlInput}
               onChange={(e) => setSqlInput(e.target.value)}
-              className="w-full p-4 bg-black font-mono text-xs sm:text-sm text-gray-400 focus:outline-none resize-y leading-relaxed"
+              onKeyDown={handleKeyDown}
+              className="w-full p-4 bg-[#0d130d] font-mono text-xs sm:text-sm text-cv-text focus:outline-none resize-y leading-relaxed border-0"
+              spellCheck={false}
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-gray-900 border-t border-gray-900">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-cv-surface border-t border-cv-border/30">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setAllowWrite(!allowWrite)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono transition-colors border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-colors border ${
                     allowWrite
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                      ? 'bg-cv-danger/10 border-cv-danger/30 text-cv-danger'
+                      : 'bg-cv-moss/10 border-cv-moss/30 text-cv-moss'
                   }`}
-                  title={allowWrite ? "Write Mode: DML/DDL execution enabled" : "Read-Only Mode: Only SELECT / EXPLAIN allowed"}
+                  title={allowWrite ? "Write Mode: DML/DDL execution enabled" : "Read-Only Mode: Only SELECT queries permitted"}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {allowWrite ? <ShieldAlert className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
                   <span>{allowWrite ? 'Write Mode (Active)' : 'Read-Only Mode (Safe)'}</span>
                 </button>
-                <span className="text-[11px] text-gray-500 hidden sm:inline">
-                  {allowWrite ? 'Warning: DML/DDL queries can modify database' : 'Protected query execution'}
+                <span className="text-[11px] text-cv-muted hidden sm:inline">
+                  {allowWrite ? 'DML statements will mutate state' : 'Safe query sandbox'}
                 </span>
               </div>
-              <button
-                onClick={handleExecuteSql}
-                disabled={isExecuting || !sqlInput.trim()}
-                className="px-5 py-2 rounded-xl bg-white hover:bg-gray-200 text-black font-semibold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-40"
-              >
-                <Play className="w-3.5 h-3.5 fill-black" />
-                <span>{isExecuting ? 'Executing...' : 'Run Query'}</span>
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSqlInput('')}
+                  className="px-3 py-1.5 rounded-xl bg-cv-surface-2 hover:bg-cv-shell text-cv-muted hover:text-cv-text text-xs border border-cv-border/30 transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={handleExecuteSql}
+                  disabled={isExecuting || !sqlInput.trim()}
+                  className="px-5 py-2 rounded-xl bg-cv-moss hover:bg-cv-moss/90 text-cv-ink font-bold text-xs flex items-center gap-1.5 transition-colors disabled:opacity-40 shadow-sm"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>{isExecuting ? 'Executing...' : 'Run Query'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start justify-between gap-3 animate-fade-in">
+            <div className="p-4 rounded-2xl bg-cv-danger/10 border border-cv-danger/20 text-cv-danger flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div className="font-mono text-xs">{error}</div>
               </div>
               {error.includes('Read-only') && (
@@ -362,7 +389,7 @@ export default function DbmsConsolePage() {
                     setAllowWrite(true);
                     setTimeout(handleExecuteSql, 50);
                   }}
-                  className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-xs font-medium shrink-0"
+                  className="px-3 py-1 bg-cv-danger/20 hover:bg-cv-danger/30 text-cv-text rounded-lg text-xs font-medium shrink-0"
                 >
                   Enable Write & Retry
                 </button>
@@ -372,49 +399,57 @@ export default function DbmsConsolePage() {
 
           {/* Output Table */}
           {queryResult && (
-            <div className="rounded-3xl bg-gray-900 border border-gray-800 overflow-hidden space-y-3 p-5 shadow-xl animate-fade-in">
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-gray-900">
+            <div className="rounded-2xl bg-cv-shell border border-cv-border/40 overflow-hidden space-y-3 p-5 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-cv-border/20">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-semibold text-white">Results ({queryResult.rowCount} rows)</span>
+                  <CheckCircle2 className="w-4 h-4 text-cv-moss" />
+                  <span className="text-xs font-semibold text-cv-text">
+                    Results ({queryResult.rowCount} rows)
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={downloadCSV}
-                    className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-[11px] text-cv-muted hover:text-cv-text transition-colors"
                   >
                     <Download className="w-3 h-3" /> Export CSV
                   </button>
-                  <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                  <div className="text-xs font-mono text-cv-moss bg-cv-moss/10 px-2.5 py-0.5 rounded-full border border-cv-moss/20 flex items-center gap-1">
                     <Clock className="w-3 h-3" /> {queryResult.durationMs} ms
                   </div>
                 </div>
               </div>
 
               {queryResult.rows.length === 0 ? (
-                <div className="p-6 text-center text-xs text-gray-500 font-mono">
-                  Query executed successfully (0 rows).
+                <div className="p-6 text-center text-xs text-cv-muted font-mono">
+                  Query executed successfully (0 rows returned).
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-80">
+                <div className="overflow-x-auto max-h-96 rounded-xl border border-cv-border/30">
                   <table className="w-full text-left font-mono text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-900 border-b border-gray-900 text-gray-400">
+                      <tr className="bg-cv-surface border-b border-cv-border/30 text-cv-muted sticky top-0">
                         {queryResult.columns.map((col: string) => (
-                          <th key={col} className="p-2.5 font-semibold text-white whitespace-nowrap">
+                          <th key={col} className="p-2.5 font-semibold text-cv-text whitespace-nowrap">
                             {col}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-cv-border/20 bg-[#0d130d]">
                       {queryResult.rows.map((row: any, rIdx: number) => (
-                        <tr key={rIdx} className="hover:bg-gray-900 transition-colors">
+                        <tr key={rIdx} className="hover:bg-cv-surface/40 transition-colors">
                           {queryResult.columns.map((col: string) => {
                             const val = row[col];
                             return (
-                              <td key={col} className="p-2.5 text-gray-400 whitespace-nowrap max-w-xs truncate">
-                                {typeof val === 'object' ? JSON.stringify(val) : String(val ?? 'NULL')}
+                              <td key={col} className="p-2.5 text-cv-muted whitespace-nowrap max-w-xs truncate">
+                                {val === null ? (
+                                  <span className="text-cv-muted/40 italic">NULL</span>
+                                ) : typeof val === 'object' ? (
+                                  JSON.stringify(val)
+                                ) : (
+                                  String(val)
+                                )}
                               </td>
                             );
                           })}
@@ -432,24 +467,29 @@ export default function DbmsConsolePage() {
 
       {/* TAB 2: TRIGGER TESTER */}
       {activeTab === 'triggers' && (
-        <div className="mt-6 space-y-4 animate-fade-in">
+        <div className="space-y-4">
           
-          <div className="p-5 rounded-3xl bg-gray-900 border border-gray-900 space-y-3">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Zap className="w-4 h-4 text-white fill-current" />
-              <span>Interactive Trigger Execution Proof</span>
-            </h2>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Demonstrates real-time synchronization by firing <code className="text-white">trg_update_movie_rating</code> and audit log generation via <code className="text-white">trg_log_review_activity</code>.
-            </p>
+          <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-xl">
+            <div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-cv-muted">
+                The Projection Room / PL/pgSQL Triggers
+              </div>
+              <h2 className="text-lg font-serif font-bold text-cv-text mt-0.5 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-cv-moss fill-current" />
+                <span>Real-Time Trigger Verification Lab</span>
+              </h2>
+              <p className="text-xs text-cv-muted leading-relaxed mt-1">
+                Trigger <code className="text-cv-moss font-mono">trg_update_movie_rating</code> recalculates <code className="text-cv-text font-mono">avg_rating</code> and <code className="text-cv-text font-mono">review_count</code> on review insert/update. Trigger <code className="text-cv-moss font-mono">trg_log_review_activity</code> automatically writes an immutable audit record to <code className="text-cv-text font-mono">activity_logs</code>.
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
               <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">Target Film</label>
+                <label className="text-xs font-semibold text-cv-text block mb-1">Target Film</label>
                 <select
                   value={selectedMovieId}
                   onChange={(e) => setSelectedMovieId(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white"
+                  className="w-full bg-cv-surface border border-cv-border/40 rounded-xl px-3 py-2 text-xs text-cv-text focus:outline-none focus:border-cv-moss font-mono"
                 >
                   <option value="1">1 - Inception</option>
                   <option value="2">2 - Interstellar</option>
@@ -459,11 +499,11 @@ export default function DbmsConsolePage() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-400 block mb-1">Inject Score</label>
+                <label className="text-xs font-semibold text-cv-text block mb-1">Inject Rating Score</label>
                 <select
                   value={injectedRating}
                   onChange={(e) => setInjectedRating(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-white"
+                  className="w-full bg-cv-surface border border-cv-border/40 rounded-xl px-3 py-2 text-xs text-cv-text font-mono font-bold focus:outline-none focus:border-cv-moss"
                 >
                   <option value="10.0">10.0 ★ (Masterpiece)</option>
                   <option value="1.0">1.0 ★ (Lowest Score Stress-Test)</option>
@@ -475,58 +515,91 @@ export default function DbmsConsolePage() {
                 <button
                   onClick={handleTestTrigger}
                   disabled={isTriggerTesting}
-                  className="w-full py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-semibold text-xs border border-gray-800 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-xl bg-cv-moss hover:bg-cv-moss/90 text-cv-ink font-bold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
                 >
-                  <Zap className="w-3.5 h-3.5 text-white fill-current" />
-                  <span>{isTriggerTesting ? 'Testing...' : 'Execute Test Trigger'}</span>
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>{isTriggerTesting ? 'Testing Trigger...' : 'Execute Test Trigger Mutation'}</span>
                 </button>
               </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-cv-surface-2 border border-cv-border/30 text-[11px] text-cv-muted flex items-center gap-2">
+              <span className="text-cv-moss">ℹ Note:</span>
+              <span>This triggers real PL/pgSQL database code, executing live DML on the active database engine to verify real-time trigger synchronization.</span>
             </div>
           </div>
 
           {triggerDemoResult && (
-            <div className="p-5 rounded-3xl bg-gray-900 border border-gray-800 space-y-4 animate-fade-in shadow-xl">
-              <div className="flex items-center gap-2 pb-2 border-b border-gray-900">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                  Trace: {triggerDemoResult.targetMovie}
-                </h3>
+            <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/40 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between pb-2 border-b border-cv-border/20">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-cv-moss" />
+                  <h3 className="text-xs font-bold text-cv-text uppercase tracking-wider font-mono">
+                    Trigger Trace: {triggerDemoResult.targetMovie}
+                  </h3>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cv-moss/10 border border-cv-moss/30 text-cv-moss">
+                  Triggers Fired Successfully
+                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                 
-                <div className="p-3 rounded-2xl bg-gray-900 border border-gray-900 space-y-1.5">
-                  <div className="text-gray-500 font-semibold">1. State Before Trigger</div>
-                  <div className="font-mono">
-                    <div>Avg: <strong className="text-white">{triggerDemoResult.step1_before.avg_rating}</strong></div>
-                    <div>Count: <strong className="text-white">{triggerDemoResult.step1_before.review_count}</strong></div>
+                {/* 1. Before */}
+                <div className="p-4 rounded-xl bg-cv-surface border border-cv-border/30 space-y-2">
+                  <div className="text-[11px] text-cv-muted font-mono uppercase tracking-wider">
+                    1. Before Mutation
+                  </div>
+                  <div className="font-mono space-y-1">
+                    <div className="text-cv-muted text-xs">
+                      Avg: <strong className="text-cv-text text-sm">{triggerDemoResult.step1_before.avg_rating}</strong>
+                    </div>
+                    <div className="text-cv-muted text-xs">
+                      Reviews: <strong className="text-cv-text text-sm">{triggerDemoResult.step1_before.review_count}</strong>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-gray-900 border border-gray-800 space-y-1.5">
-                  <div className="text-gray-400 font-semibold">2. DML Action Fired</div>
-                  <div className="font-mono">
-                    <div>Op: <span className="text-gray-400 font-bold">{triggerDemoResult.step2_action.operation}</span></div>
-                    <div>Rating: <span className="text-white font-bold">{triggerDemoResult.step2_action.injectedRating}★</span></div>
+                {/* 2. DML Mutation */}
+                <div className="p-4 rounded-xl bg-cv-surface border border-cv-border/30 space-y-2">
+                  <div className="text-[11px] text-cv-muted font-mono uppercase tracking-wider">
+                    2. DML Mutation Executed
+                  </div>
+                  <div className="font-mono space-y-1">
+                    <div className="text-cv-muted text-xs">
+                      Operation: <span className="text-cv-moss font-bold">{triggerDemoResult.step2_action.operation}</span>
+                    </div>
+                    <div className="text-cv-muted text-xs">
+                      Rating Injected: <span className="text-cv-text font-bold">{triggerDemoResult.step2_action.injectedRating}★</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
-                  <div className="text-emerald-400 font-semibold">3. State After Trigger Sync</div>
-                  <div className="font-mono">
-                    <div>New Avg: <strong className="text-emerald-400">{triggerDemoResult.step3_after.avg_rating}</strong></div>
-                    <div>Count: <strong className="text-white">{triggerDemoResult.step3_after.review_count}</strong></div>
+                {/* 3. After */}
+                <div className="p-4 rounded-xl bg-cv-moss/10 border border-cv-moss/30 space-y-2">
+                  <div className="text-[11px] text-cv-moss font-mono uppercase tracking-wider font-bold">
+                    3. After Trigger Sync
+                  </div>
+                  <div className="font-mono space-y-1">
+                    <div className="text-cv-muted text-xs">
+                      New Avg: <strong className="text-cv-moss text-sm">{triggerDemoResult.step3_after.avg_rating}</strong>
+                    </div>
+                    <div className="text-cv-muted text-xs">
+                      New Count: <strong className="text-cv-text text-sm">{triggerDemoResult.step3_after.review_count}</strong>
+                    </div>
                   </div>
                 </div>
 
               </div>
 
+              {/* 4. Audit Log Entry */}
               {triggerDemoResult.step4_trigger_audit_log && (
-                <div className="p-3 rounded-2xl bg-black border border-gray-900 space-y-1">
-                  <div className="text-[10px] uppercase font-bold text-gray-500">
-                    Audit Log Entry via <code className="text-white">trg_log_review_activity</code>:
+                <div className="p-4 rounded-xl bg-[#0d130d] border border-cv-border/40 space-y-2">
+                  <div className="text-[11px] uppercase font-mono font-bold text-cv-muted flex items-center gap-2">
+                    <Zap className="w-3.5 h-3.5 text-cv-moss" />
+                    <span>Audit Log Record Created via <code className="text-cv-text">trg_log_review_activity</code>:</span>
                   </div>
-                  <pre className="font-mono text-xs text-gray-400 overflow-x-auto">
+                  <pre className="font-mono text-xs text-cv-moss overflow-x-auto leading-relaxed">
                     {JSON.stringify(triggerDemoResult.step4_trigger_audit_log, null, 2)}
                   </pre>
                 </div>
@@ -540,45 +613,59 @@ export default function DbmsConsolePage() {
 
       {/* TAB 3: SCHEMA & ER MAP */}
       {activeTab === 'schema' && (
-        <div className="mt-6 space-y-4 animate-fade-in">
+        <div>
           <InteractiveErDiagram />
         </div>
       )}
 
       {/* TAB 4: PROCEDURES & VIEWS */}
       {activeTab === 'catalog' && (
-        <div className="mt-6 space-y-4 animate-fade-in">
+        <div className="space-y-4">
           
-          <div className="p-5 rounded-3xl bg-gray-900 border border-gray-900 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-white" /> Registered PL/pgSQL Triggers
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-xl">
+            <div>
+              <div className="text-[11px] font-mono uppercase tracking-widest text-cv-muted">
+                The Projection Room / Architecture Catalog
+              </div>
+              <h2 className="text-lg font-serif font-bold text-cv-text mt-0.5 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-cv-moss" /> Registered PL/pgSQL Triggers
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {schemaData?.triggers?.map((trg: any) => (
-                <div key={trg.name} className="p-3.5 rounded-2xl bg-gray-900 border border-gray-900 space-y-1.5">
-                  <div className="font-mono font-bold text-xs text-white">{trg.name}</div>
-                  <div className="text-[10px] text-gray-500">On: {trg.table} ({trg.events})</div>
-                  <p className="text-xs text-gray-400">{trg.purpose}</p>
+                <div key={trg.name} className="p-4 rounded-xl bg-cv-surface border border-cv-border/30 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="font-mono font-bold text-xs text-cv-text">{trg.name}</div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cv-surface-2 text-cv-moss border border-cv-border/30">
+                      {trg.events}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-cv-muted font-mono">Target: {trg.table}</div>
+                  <p className="text-xs text-cv-muted leading-relaxed">{trg.purpose}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="p-5 rounded-3xl bg-gray-900 border border-gray-900 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-              <Code2 className="w-3.5 h-3.5 text-gray-400" /> Stored Functions & Analytical Views
-            </h3>
+          <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-xl">
+            <div>
+              <h2 className="text-lg font-serif font-bold text-cv-text flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-cv-moss" /> Stored Functions & Analytical Views
+              </h2>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {schemaData?.procedures?.map((proc: any) => (
-                <div key={proc.name} className="p-3.5 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-                  <div className="font-mono font-bold text-xs text-white">{proc.name}</div>
-                  <p className="text-xs text-gray-400">{proc.purpose}</p>
+                <div key={proc.name} className="p-4 rounded-xl bg-cv-surface border border-cv-border/30 space-y-1.5">
+                  <div className="font-mono font-bold text-xs text-cv-text">{proc.name}</div>
+                  <p className="text-xs text-cv-muted leading-relaxed">{proc.purpose}</p>
                 </div>
               ))}
               {schemaData?.views?.map((view: any) => (
-                <div key={view.name} className="p-3.5 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-                  <div className="font-mono font-bold text-xs text-gray-400">{view.name}</div>
-                  <p className="text-xs text-gray-400">{view.purpose}</p>
+                <div key={view.name} className="p-4 rounded-xl bg-cv-surface border border-cv-border/30 space-y-1.5">
+                  <div className="font-mono font-bold text-xs text-cv-text">{view.name}</div>
+                  <p className="text-xs text-cv-muted leading-relaxed">{view.purpose}</p>
                 </div>
               ))}
             </div>

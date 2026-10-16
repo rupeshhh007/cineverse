@@ -65,3 +65,7 @@ Thumbs.db
 !.vscode/settings.json
 *.swp
 *.swo
+
+# Design reference assets (not in deploy bundle)
+design-references/
+PRIMARY_NETFLIX_MONITOR_REFERENCE.png

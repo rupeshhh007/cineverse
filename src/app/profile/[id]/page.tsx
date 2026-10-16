@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { 
   User as UserIcon, 
   Star, 
@@ -12,16 +12,19 @@ import {
   MessageSquare, 
   Heart, 
   Award, 
-  UserPlus,
-  UserCheck,
-  ChevronLeft,
-  Loader2
+  UserPlus, 
+  UserCheck, 
+  ChevronLeft, 
+  Loader2, 
+  Layers, 
+  BarChart3, 
+  TrendingUp,
+  Bookmark
 } from 'lucide-react';
 import { User, UserAnalytics, Review } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
 import { useAuth } from '@/lib/AuthContext';
 import ErrorMessage from '@/components/ErrorMessage';
-import { useRouter } from 'next/navigation';
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -110,272 +113,341 @@ export default function UserProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 animate-pulse space-y-6">
-        <div className="h-48 bg-gray-900 rounded-3xl" />
-        <div className="h-32 bg-gray-900 rounded-3xl" />
+      <div className="space-y-6 animate-pulse pb-20">
+        <div className="h-48 bg-cv-shell rounded-2xl border border-cv-border/30" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 bg-cv-shell rounded-2xl border border-cv-border/30" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error && !user) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 space-y-4">
+      <div className="py-20 text-center space-y-4 max-w-xl mx-auto">
         <ErrorMessage message={error} onRetry={fetchUserProfile} />
-        <div className="text-center">
-          <Link href="/" className="text-gray-400 hover:underline text-xs">
-            Return to Discover
-          </Link>
-        </div>
+        <Link href="/" className="text-cv-moss hover:underline text-xs font-mono">
+          ← Return to Discover
+        </Link>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h1 className="text-xl font-bold text-white">User Not Found</h1>
-        <Link href="/" className="text-gray-400 hover:underline text-xs">
-          Return to Discover
+      <div className="py-20 text-center space-y-4 max-w-xl mx-auto">
+        <h1 className="text-xl font-serif font-bold text-cv-text">Member Not Found</h1>
+        <Link href="/" className="text-cv-moss hover:underline text-xs font-mono">
+          ← Return to Discover
         </Link>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen pb-24">
-      
-      {/* Banner */}
-      <div className="relative w-full h-48 sm:h-64 overflow-hidden border-b border-gray-900 bg-black">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${user.banner_url || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200'})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/30" />
-        </div>
-      </div>
+  const initials = (user.display_name || user.username || 'CV')
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
-      {/* Profile Card */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 sm:-mt-20 relative z-10">
-        <div className="p-6 sm:p-7 rounded-3xl bg-gray-900 border border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
-          
-          <div className="flex items-center gap-5">
-            <img
-              src={user.avatar_url}
-              alt={user.display_name}
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-gray-800 shadow-lg"
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{user.display_name}</h1>
-                <span className="text-[10px] font-mono text-gray-400 bg-gray-900 px-2 py-0.5 rounded border border-gray-900">
-                  ID: #{user.user_id}
-                </span>
+  const ratingDist = analytics?.rating_distribution || {};
+  const maxDistCount = Math.max(1, ...Object.values(ratingDist).map(Number));
+
+  return (
+    <div className="space-y-8 pb-24">
+      
+      {/* Profile Header & Banner */}
+      <div className="rounded-2xl bg-cv-shell border border-cv-border/30 overflow-hidden shadow-xl">
+        {/* Banner */}
+        <div 
+          className="h-44 sm:h-52 w-full bg-cover bg-center relative"
+          style={{ 
+            backgroundImage: `url(${user.banner_url || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=3270&auto=format&fit=crop'})` 
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-cv-shell via-black/40 to-black/20" />
+        </div>
+
+        {/* Profile Card Body */}
+        <div className="px-6 sm:px-8 pb-6 pt-0 relative z-10 -mt-14 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            
+            {/* Avatar & Names */}
+            <div className="flex items-end gap-4">
+              {user.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user.display_name}
+                  className="w-24 h-24 rounded-2xl object-cover border-4 border-cv-shell shadow-2xl bg-cv-surface"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-cv-surface-2 border-4 border-cv-shell shadow-2xl flex items-center justify-center font-mono text-2xl font-bold text-cv-text">
+                  {initials}
+                </div>
+              )}
+
+              <div className="mb-1">
+                <h1 className="text-2xl sm:text-3xl font-serif font-bold text-cv-text">
+                  {user.display_name}
+                </h1>
+                <div className="text-xs font-mono text-cv-muted">
+                  @{user.username}
+                </div>
               </div>
-              <div className="text-xs text-gray-500">@{user.username}</div>
-              {user.bio && (
-                <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-lg leading-relaxed">
-                  {user.bio}
-                </p>
+            </div>
+
+            {/* Follow Actions & Counters */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4 px-4 py-2 rounded-xl bg-cv-surface border border-cv-border/30 text-xs font-mono">
+                <div>
+                  <span className="font-bold text-cv-text">{followersCount}</span>
+                  <span className="text-cv-muted ml-1">Followers</span>
+                </div>
+                <span className="text-cv-border">•</span>
+                <div>
+                  <span className="font-bold text-cv-text">{analytics?.following_count || 0}</span>
+                  <span className="text-cv-muted ml-1">Following</span>
+                </div>
+              </div>
+
+              {!isOwnProfile && (
+                <button
+                  onClick={handleToggleFollow}
+                  disabled={isFollowUpdating}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                    isFollowing
+                      ? 'bg-cv-surface hover:bg-cv-danger/20 hover:text-cv-danger hover:border-cv-danger/40 border border-cv-border/40 text-cv-text'
+                      : 'bg-cv-moss hover:bg-cv-moss/90 text-cv-ink'
+                  }`}
+                >
+                  {isFollowUpdating ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : isFollowing ? (
+                    <>
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Following</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Follow</span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
+
           </div>
 
-          {/* Social Stats & Working Follow Button */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-5 text-center">
-              <div>
-                <div className="text-base font-bold text-white font-mono">{followersCount}</div>
-                <div className="text-[10px] text-gray-500 uppercase">Followers</div>
-              </div>
-              <div className="h-6 w-px bg-gray-900" />
-              <div>
-                <div className="text-base font-bold text-white font-mono">{analytics?.following_count || 0}</div>
-                <div className="text-[10px] text-gray-500 uppercase">Following</div>
+          {/* Bio */}
+          {user.bio && (
+            <p className="text-xs sm:text-sm text-cv-muted max-w-2xl leading-relaxed">
+              {user.bio}
+            </p>
+          )}
+
+          {/* 4 Metric Tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-cv-border/20">
+            <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+              <div className="text-[11px] font-mono uppercase text-cv-muted">Films Logged</div>
+              <div className="text-xl font-mono font-bold text-cv-text mt-0.5">
+                {analytics?.total_reviews || reviews.length}
               </div>
             </div>
 
-            {!isOwnProfile && (
-              <button
-                onClick={handleToggleFollow}
-                disabled={isFollowUpdating}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  isFollowing
-                    ? 'bg-gray-800 hover:bg-rose-500/20 text-black hover:text-rose-300 border border-gray-800'
-                    : 'bg-white hover:bg-gray-200 text-black shadow-sm'
-                }`}
-              >
-                {isFollowUpdating ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : isFollowing ? (
-                  <>
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Following</span>
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Follow User</span>
-                  </>
-                )}
-              </button>
-            )}
+            <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+              <div className="text-[11px] font-mono uppercase text-cv-muted">Average Rating</div>
+              <div className="text-xl font-mono font-bold text-cv-moss mt-0.5 flex items-center gap-1">
+                <Star className="w-4 h-4 fill-current" />
+                <span>{analytics?.avg_rating || '—'}</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+              <div className="text-[11px] font-mono uppercase text-cv-muted">Estimated Runtime</div>
+              <div className="text-xl font-mono font-bold text-cv-text mt-0.5">
+                {analytics?.total_runtime_hours || 0} hrs
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/30">
+              <div className="text-[11px] font-mono uppercase text-cv-muted">Collections</div>
+              <div className="text-xl font-mono font-bold text-cv-text mt-0.5">
+                {analytics?.total_watchlists || 0}
+              </div>
+            </div>
           </div>
 
         </div>
       </div>
 
-      {/* Analytics Stats Grid */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          
-          <div className="p-4 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-            <div className="text-gray-400 text-xs flex items-center gap-1.5">
-              <Film className="w-3.5 h-3.5 text-gray-400" /> Films Logged
-            </div>
-            <div className="text-2xl font-extrabold text-white font-mono">{analytics?.total_reviews || 0}</div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-            <div className="text-gray-400 text-xs flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-white fill-current" /> Avg Rating Given
-            </div>
-            <div className="text-2xl font-extrabold text-white font-mono">{analytics?.avg_rating || 0.0}</div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-            <div className="text-gray-400 text-xs flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-white" /> Watch Time
-            </div>
-            <div className="text-2xl font-extrabold text-white font-mono">{analytics?.total_runtime_hours || 0} hrs</div>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-gray-900 border border-gray-900 space-y-1">
-            <div className="text-gray-400 text-xs flex items-center gap-1.5">
-              <Award className="w-3.5 h-3.5 text-white" /> Curated Lists
-            </div>
-            <div className="text-2xl font-extrabold text-white font-mono">{analytics?.total_watchlists || 0}</div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Top Genres & Spread */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+      {/* Analytics & Cinephile Taste (2 Columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        <div className="p-5 rounded-2xl bg-gray-900 border border-gray-900 space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-white" /> Favorite Genres (SQL Aggregation)
-          </h3>
-          <div className="space-y-2">
-            {analytics?.top_genres && analytics.top_genres.length > 0 ? (
-              analytics.top_genres.map((tg) => (
-                <div key={tg.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white font-medium">{tg.name}</span>
-                    <span className="text-gray-500 font-mono">{tg.count} films</span>
-                  </div>
-                  <div className="w-full bg-gray-900 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      style={{ width: `${Math.min((tg.count / 8) * 100, 100)}%` }}
-                      className="h-full bg-white rounded-full"
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-gray-400">No genre data available yet.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-gray-900 border border-gray-900 space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5 text-white fill-current" /> Rating Spread
-          </h3>
-          <div className="flex items-end gap-1.5 h-28 pt-2">
-            {Object.entries(analytics?.rating_distribution || {}).map(([score, count]) => (
-              <div key={score} className="flex-1 flex flex-col items-center gap-1 group">
-                <div className="text-[9px] font-mono text-gray-500">{count as number}</div>
-                <div className="w-full bg-gray-900 rounded-t h-full flex items-end overflow-hidden">
-                  <div
-                    style={{ height: `${Math.max(((count as number) / 6) * 100, 4)}%` }}
-                    className="w-full bg-gradient-to-t from-white to-white rounded-t transition-all"
-                  />
-                </div>
-                <span className="text-[9px] font-mono text-gray-400">{score}★</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </section>
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-4 h-4 text-white" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
-              Recommended for {user.display_name}
-            </h2>
-            <span className="text-[11px] font-mono text-gray-500">
-              (PL/pgSQL <code className="text-white">fn_recommend_movies</code>)
+        {/* Favorite Genres Card */}
+        <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-cv-border/20">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cv-text">
+              <TrendingUp className="w-3.5 h-3.5 text-cv-moss" />
+              <span>Genre Affinity</span>
+            </div>
+            <span className="text-[10px] font-mono text-cv-muted">
+              v_user_genre_affinity
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {recommendations.map((rec) => (
-              <div key={rec.movie_id} className="p-3 rounded-2xl bg-gray-900 border border-gray-900 space-y-2">
-                <Link href={`/movies/${rec.movie_id}`} className="block aspect-[2/3] rounded-xl overflow-hidden">
-                  <img src={rec.poster_url} alt={rec.title} className="w-full h-full object-cover" />
-                </Link>
-                <div className="text-xs font-semibold text-white truncate">{rec.title}</div>
-                <div className="text-[10px] text-gray-400 line-clamp-2 leading-tight">
-                  {rec.recommendation_reason}
+          {!analytics?.top_genres || analytics.top_genres.length === 0 ? (
+            <p className="text-xs text-cv-muted italic py-4">No genre data logged yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {analytics.top_genres.slice(0, 5).map((g) => {
+                const count = g.count;
+                const pct = Math.min(100, Math.round((count / (analytics.total_reviews || 1)) * 100));
+                return (
+                  <div key={g.name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <span className="font-semibold text-cv-text">{g.name}</span>
+                      <span className="text-cv-muted">{count} films ({pct}%)</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-cv-surface-2 overflow-hidden border border-cv-border/20">
+                      <div 
+                        className="h-full bg-cv-moss rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(8, pct)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 10-Point Rating Distribution Histogram */}
+        <div className="p-6 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between pb-2 border-b border-cv-border/20">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cv-text">
+              <BarChart3 className="w-3.5 h-3.5 text-cv-moss" />
+              <span>Rating Distribution (1–10★)</span>
+            </div>
+            <span className="text-[10px] font-mono text-cv-muted">
+              fn_get_user_analytics
+            </span>
+          </div>
+
+          <div className="h-32 flex items-end justify-between gap-1.5 pt-4 px-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => {
+              const count = Number(ratingDist[star] || 0);
+              const heightPct = count > 0 ? Math.max(15, Math.round((count / maxDistCount) * 100)) : 4;
+              return (
+                <div key={star} className="flex-1 flex flex-col items-center gap-1.5 group">
+                  <div className="w-full flex items-end justify-center h-24">
+                    <div
+                      className={`w-full rounded-t transition-all ${
+                        count > 0 ? 'bg-cv-moss hover:bg-cv-moss/80' : 'bg-cv-surface-2'
+                      }`}
+                      style={{ height: `${heightPct}%` }}
+                      title={`${count} reviews rated ${star}★`}
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono text-cv-muted group-hover:text-cv-text">
+                    {star}
+                  </span>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Recommended Films (fn_recommend_movies) */}
+      {recommendations.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cv-moss" />
+              <h2 className="text-lg font-serif font-bold text-cv-text">
+                Recommended for {user.display_name.split(' ')[0]}
+              </h2>
+            </div>
+            <span className="text-[10px] font-mono text-cv-muted">
+              Computed via fn_recommend_movies()
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {recommendations.map((movie: any) => (
+              <MovieCard key={movie.movie_id} movie={movie} />
             ))}
           </div>
-        </section>
+        </div>
       )}
 
       {/* Review History */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" />
-          <span>Review History ({reviews.length})</span>
-        </h2>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-serif font-bold text-cv-text">
+            Film Reviews & Ratings ({reviews.length})
+          </h2>
+          <span className="text-[10px] font-mono text-cv-muted">
+            Directly joins reviews & movies
+          </span>
+        </div>
 
-        <div className="space-y-3">
-          {reviews.map((r) => (
-            <div key={r.review_id} className="p-4 rounded-2xl bg-gray-900 border border-gray-900 flex items-start gap-4">
-              {r.poster_url && (
-                <img
-                  src={r.poster_url}
-                  alt={r.movie_title || ''}
-                  className="w-12 h-16 rounded-xl object-cover border border-gray-800"
-                />
-              )}
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center justify-between">
-                  <Link href={`/movies/${r.movie_id}`} className="text-sm font-bold text-white hover:text-gray-400 transition-colors">
-                    {r.movie_title}
-                  </Link>
-                  <div className="flex items-center gap-1 text-white font-mono font-bold text-xs bg-gray-800 px-2 py-0.5 rounded-full border border-gray-800">
-                    <Star className="w-3 h-3 fill-current" /> {Number(r.rating).toFixed(1)}
+        {reviews.length === 0 ? (
+          <div className="p-12 text-center rounded-2xl bg-cv-shell border border-cv-border/30 space-y-2">
+            <p className="text-sm font-serif text-cv-text">No reviews published yet.</p>
+            <p className="text-xs text-cv-muted">Ratings submitted by {user.display_name} will appear here.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {reviews.map((rev) => (
+              <div
+                key={rev.review_id}
+                className="p-5 rounded-2xl bg-cv-shell border border-cv-border/30 hover:border-cv-border/60 transition-colors space-y-3"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {rev.poster_url && (
+                      <img
+                        src={rev.poster_url}
+                        alt={rev.movie_title || ''}
+                        className="w-10 h-14 rounded-lg object-cover border border-cv-border/40 shrink-0 shadow-sm"
+                      />
+                    )}
+                    <div>
+                      <Link
+                        href={`/movies/${rev.movie_id}`}
+                        className="text-sm font-serif font-bold text-cv-text hover:text-cv-moss transition-colors"
+                      >
+                        {rev.movie_title || `Film #${rev.movie_id}`}
+                      </Link>
+                      <div className="text-[11px] font-mono text-cv-muted flex items-center gap-1.5 mt-0.5">
+                        <Clock className="w-3 h-3 text-cv-muted/60" />
+                        <span>{new Date(rev.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-cv-moss/10 border border-cv-moss/30 text-cv-moss text-xs font-bold font-mono">
+                    <Star className="w-3 h-3 fill-current" />
+                    <span>{Number(rev.rating).toFixed(1)}</span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  {r.review_text}
-                </p>
-                <div className="text-[10px] text-gray-500 pt-1">
-                  Logged on {new Date(r.created_at).toLocaleDateString()}
-                </div>
+
+                {rev.review_text && (
+                  <p className="text-xs text-cv-muted/90 leading-relaxed italic bg-cv-surface/50 p-3 rounded-xl border border-cv-border/20">
+                    &ldquo;{rev.review_text}&rdquo;
+                  </p>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        )}
+      </div>
 
     </div>
   );

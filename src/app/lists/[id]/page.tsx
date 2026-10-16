@@ -3,7 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ListOrdered, Heart, Film, ChevronLeft, Trash2, X, Loader2 } from 'lucide-react';
+import { 
+  ListOrdered, 
+  Heart, 
+  Film, 
+  ChevronLeft, 
+  Trash2, 
+  X, 
+  Loader2, 
+  Share2, 
+  Check, 
+  Clock, 
+  Lock, 
+  Globe 
+} from 'lucide-react';
 import { Watchlist, Movie } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
 import { useAuth } from '@/lib/AuthContext';
@@ -22,6 +35,7 @@ export default function SingleListPage() {
   const [isDeletingList, setIsDeletingList] = useState(false);
   const [removingMovieId, setRemovingMovieId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const fetchList = async () => {
     setIsLoading(true);
@@ -85,13 +99,21 @@ export default function SingleListPage() {
     }
   };
 
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 animate-pulse space-y-6">
-        <div className="h-40 bg-gray-900 rounded-3xl" />
+      <div className="space-y-6 animate-pulse pb-20">
+        <div className="h-64 bg-cv-shell rounded-2xl border border-cv-border/30" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="aspect-[2/3] bg-gray-900 rounded-2xl" />
+            <div key={i} className="aspect-[3/4] bg-cv-shell rounded-2xl border border-cv-border/30" />
           ))}
         </div>
       </div>
@@ -100,115 +122,174 @@ export default function SingleListPage() {
 
   if (error && !list) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 space-y-4">
+      <div className="py-20 space-y-4 max-w-xl mx-auto text-center">
         <ErrorMessage message={error} onRetry={fetchList} />
-        <div className="text-center">
-          <Link href="/lists" className="text-gray-400 hover:underline text-xs">
-            Return to Lists
-          </Link>
-        </div>
+        <Link href="/lists" className="text-cv-moss hover:underline text-xs font-mono">
+          ← Return to Curated Collections
+        </Link>
       </div>
     );
   }
 
   if (!list) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h1 className="text-xl font-bold text-white">List Not Found</h1>
-        <Link href="/lists" className="text-gray-400 hover:underline text-xs">
-          Return to Lists
+      <div className="py-20 text-center space-y-4 max-w-xl mx-auto">
+        <h1 className="text-xl font-serif font-bold text-cv-text">Collection Not Found</h1>
+        <p className="text-xs text-cv-muted">This list may have been deleted or made private.</p>
+        <Link href="/lists" className="text-cv-moss hover:underline text-xs font-mono">
+          ← Return to Collections
         </Link>
       </div>
     );
   }
 
+  const backdropMovie = movies[0];
+  const curatorInitials = (list.owner_display_name || list.owner_username || 'CU')
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24">
+    <div className="space-y-8 pb-24">
       
-      <div className="flex items-center justify-between mb-6">
+      {/* Top Back Nav & Actions */}
+      <div className="flex items-center justify-between gap-4">
         <Link
           href="/lists"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-900 hover:bg-gray-800 border border-gray-900 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-cv-muted hover:text-cv-text font-mono transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" /> Back to Lists
+          <ChevronLeft className="w-4 h-4" />
+          <span>Back to Collections</span>
         </Link>
 
-        {isOwner && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+            onClick={handleShare}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cv-shell border border-cv-border/40 hover:bg-cv-surface text-xs font-semibold text-cv-text transition-colors shadow-sm"
           >
-            <Trash2 className="w-3.5 h-3.5" /> Delete List
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-cv-moss" /> : <Share2 className="w-3.5 h-3.5" />}
+            <span>{copiedLink ? 'Link copied' : 'Share collection'}</span>
           </button>
+
+          {isOwner && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cv-danger/10 hover:bg-cv-danger/20 border border-cv-danger/30 text-xs font-semibold text-cv-danger transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete collection</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Hero Collection Header Card */}
+      <div className="relative rounded-2xl bg-cv-shell border border-cv-border/40 overflow-hidden shadow-xl">
+        {/* Background Film Backdrop */}
+        {backdropMovie?.backdrop_url && (
+          <div 
+            className="absolute inset-0 bg-cover bg-center opacity-20 pointer-events-none"
+            style={{ backgroundImage: `url(${backdropMovie.backdrop_url})` }}
+          />
         )}
-      </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-cv-shell via-cv-shell/80 to-transparent pointer-events-none" />
 
-      {error && (
-        <div className="mb-6">
-          <ErrorMessage message={error} onRetry={fetchList} />
-        </div>
-      )}
-
-      {/* List Header Card */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gray-900 border border-gray-900 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1">
-              <ListOrdered className="w-3.5 h-3.5 text-gray-400" /> Curated Watchlist
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white">{list.name}</h1>
-            {list.description && (
-              <p className="text-xs sm:text-sm text-gray-400 mt-1.5 max-w-2xl">{list.description}</p>
-            )}
+        <div className="relative z-10 p-6 sm:p-8 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full bg-cv-surface border border-cv-border/40 text-cv-moss">
+              Curated Collection
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cv-surface-2 text-cv-muted border border-cv-border/30 flex items-center gap-1">
+              {list.is_public ? <Globe className="w-3 h-3 text-cv-moss" /> : <Lock className="w-3 h-3" />}
+              <span>{list.is_public ? 'Public' : 'Private'}</span>
+            </span>
           </div>
 
-          <div className="flex items-center gap-2.5 p-3 rounded-2xl bg-gray-900 border border-gray-900">
-            <img
-              src={list.owner_avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-              alt={list.owner_display_name || ''}
-              className="w-9 h-9 rounded-full object-cover border border-gray-800"
-            />
-            <div>
-              <div className="text-xs font-bold text-white">{list.owner_display_name}</div>
-              <div className="text-[10px] text-gray-500">@{list.owner_username}</div>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-cv-text">
+            {list.name}
+          </h1>
+
+          {list.description && (
+            <p className="text-sm text-cv-muted max-w-2xl leading-relaxed">
+              {list.description}
+            </p>
+          )}
+
+          {/* Curator Row + Stats */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-cv-border/20">
+            <div className="flex items-center gap-3">
+              {list.owner_avatar_url ? (
+                <img
+                  src={list.owner_avatar_url}
+                  alt={list.owner_display_name || ''}
+                  className="w-10 h-10 rounded-full object-cover border border-cv-border/40"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-cv-surface text-xs font-mono font-bold flex items-center justify-center text-cv-text border border-cv-border/40">
+                  {curatorInitials}
+                </div>
+              )}
+              <div>
+                <div className="text-xs font-bold text-cv-text">
+                  Curated by {list.owner_display_name || list.owner_username}
+                </div>
+                <div className="text-[11px] text-cv-muted font-mono flex items-center gap-1.5 mt-0.5">
+                  <Clock className="w-3 h-3 text-cv-muted/60" />
+                  <span>{new Date(list.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-mono">
+              <div className="px-3 py-1.5 rounded-xl bg-cv-surface border border-cv-border/30 text-cv-text">
+                <span className="text-cv-moss font-bold">{movies.length}</span> films
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-cv-surface border border-cv-border/30 text-cv-text flex items-center gap-1.5">
+                <Heart className="w-3.5 h-3.5 text-cv-vermilion fill-current" />
+                <span>{list.likes_count || 0} likes</span>
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-4 pt-3 border-t border-gray-900 text-xs text-gray-500">
-          <span className="font-mono text-white font-bold">{movies.length} Films</span>
-          <span>•</span>
-          <span className="flex items-center gap-1 text-gray-400 font-semibold">
-            <Heart className="w-3 h-3 fill-current" /> {list.likes_count} Likes
-          </span>
-          <span>•</span>
-          <span>Created on {new Date(list.created_at).toLocaleDateString()}</span>
-        </div>
       </div>
 
-      {/* Movies in List Grid */}
-      <div className="mt-8">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Films in this list</h2>
+      {/* Films In This Collection Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-serif font-bold text-cv-text">
+            Films in this collection ({movies.length})
+          </h2>
+          {isOwner && (
+            <span className="text-xs text-cv-muted font-mono">
+              Hover to remove films
+            </span>
+          )}
+        </div>
+
         {movies.length === 0 ? (
-          <div className="p-12 text-center rounded-3xl bg-gray-900 border border-gray-900">
-            <p className="text-xs text-gray-400">No films added to this list yet.</p>
+          <div className="p-12 text-center rounded-2xl bg-cv-shell border border-cv-border/30 space-y-3">
+            <Film className="w-8 h-8 text-cv-muted mx-auto" />
+            <p className="text-sm text-cv-muted font-serif">No films in this collection yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5">
-            {movies.map((m) => (
-              <div key={m.movie_id} className="relative group">
-                <MovieCard movie={m} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {movies.map((movie) => (
+              <div key={movie.movie_id} className="relative group">
+                <MovieCard movie={movie} />
+
                 {isOwner && (
                   <button
-                    onClick={() => handleRemoveMovie(m.movie_id)}
-                    disabled={removingMovieId === m.movie_id}
-                    className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/80 hover:bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md"
-                    title="Remove from list"
+                    onClick={() => handleRemoveMovie(movie.movie_id)}
+                    disabled={removingMovieId === movie.movie_id}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 hover:bg-cv-danger text-cv-text opacity-0 group-hover:opacity-100 transition-opacity z-20 border border-cv-border/40"
+                    title="Remove film from collection"
                   >
-                    {removingMovieId === m.movie_id ? (
+                    {removingMovieId === movie.movie_id ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <X className="w-4 h-4" />
+                      <X className="w-3.5 h-3.5" />
                     )}
                   </button>
                 )}
@@ -221,25 +302,24 @@ export default function SingleListPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="max-w-sm w-full p-6 rounded-2xl bg-gray-900 border border-gray-800 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Delete Watchlist?</h3>
-            <p className="text-xs text-gray-400">
-              Are you sure you want to delete <span className="text-white font-semibold">"{list.name}"</span>? This will remove the collection and cannot be undone.
+          <div className="w-full max-w-sm rounded-2xl bg-cv-shell border border-cv-border p-6 space-y-4 shadow-2xl">
+            <h3 className="text-base font-serif font-bold text-cv-text">
+              Delete this collection?
+            </h3>
+            <p className="text-xs text-cv-muted leading-relaxed">
+              This will permanently delete <strong className="text-cv-text">&ldquo;{list.name}&rdquo;</strong> and its associations from <code className="text-cv-moss font-mono">watchlists</code>.
             </p>
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2">
               <button
-                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeletingList}
-                className="flex-1 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-xs font-semibold transition-colors"
+                className="px-3.5 py-1.5 rounded-xl bg-cv-surface hover:bg-cv-surface-2 text-cv-muted hover:text-cv-text text-xs transition-colors"
               >
                 Cancel
               </button>
               <button
-                type="button"
                 onClick={handleDeleteList}
                 disabled={isDeletingList}
-                className="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                className="px-4 py-1.5 rounded-xl bg-cv-danger hover:bg-cv-danger/90 text-white font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isDeletingList ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                 <span>Delete</span>
