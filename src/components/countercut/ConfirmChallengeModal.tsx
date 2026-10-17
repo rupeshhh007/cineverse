@@ -23,6 +23,15 @@ export default function ConfirmChallengeModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdListId, setCreatedListId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [slideProgress, setSlideProgress] = useState(0);
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    setSlideProgress(val);
+    if (val >= 90 && !isSubmitting) {
+      handleConfirm();
+    }
+  };
 
   if (!isOpen || !challenge) return null;
 
@@ -168,31 +177,65 @@ export default function ConfirmChallengeModal({
           </div>
         ) : (
           /* Confirmation Controls */
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="py-2.5 px-4 rounded-xl border border-[#54433b] hover:bg-white/5 text-[#a99c91] hover:text-white text-xs font-medium transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConfirm}
-              disabled={isSubmitting}
-              className="py-2.5 px-5 rounded-xl bg-[#dd7058] hover:bg-[#e47d66] text-[#19100e] text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Creating in database...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Authorize & Create Watchlist</span>
-                </>
-              )}
-            </button>
+          <div className="space-y-3 pt-2">
+            {/* Slide to Confirm Track (Bencho inspired) */}
+            <div className="relative w-full h-11 bg-[#121110] border border-[#54433b] rounded-xl overflow-hidden flex items-center px-3 select-none">
+              <div 
+                className="absolute inset-y-0 left-0 bg-[#dd7058]/25 transition-all"
+                style={{ width: `${slideProgress}%` }}
+              />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={slideProgress}
+                onChange={handleSliderChange}
+                disabled={isSubmitting}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-ew-resize z-20"
+                aria-label="Slide right to authorize challenge creation"
+              />
+              <div className="w-full flex items-center justify-between text-xs font-mono text-[#a99c91] pointer-events-none z-10">
+                <span className="flex items-center gap-1.5 text-white font-bold">
+                  <Sparkles className="w-3.5 h-3.5 text-[#dd7058]" />
+                  <span>Slide right to authorize</span>
+                </span>
+                <span className="text-[10px] text-[#8c7f73]">
+                  {slideProgress > 20 ? `${slideProgress}%` : '→ → →'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <span className="text-[10px] font-mono text-[#8c7f73]">
+                Or click explicit authorization:
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="py-2 px-3.5 rounded-xl border border-[#54433b] hover:bg-white/5 text-[#a99c91] hover:text-white text-xs font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={isSubmitting}
+                  className="py-2 px-4 rounded-xl bg-[#dd7058] hover:bg-[#e47d66] text-[#19100e] text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Creating in database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Authorize & Create Watchlist</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

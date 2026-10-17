@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
-import SearchModal from './SearchModal';
+import CommandPalette from './CommandPalette';
 import DbmsInspectorDrawer from './DbmsInspectorDrawer';
 import { X } from 'lucide-react';
 
@@ -107,8 +107,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Global Modals & Lens */}
-      <SearchModal 
+      {/* Global Command Palette & Lens */}
+      <CommandPalette 
         isOpen={isSearchOpen} 
         onClose={() => setIsSearchOpen(false)} 
       />

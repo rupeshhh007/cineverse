@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 import { CountercutCase } from '@/lib/countercut/types';
 import ConfirmChallengeModal from '@/components/countercut/ConfirmChallengeModal';
+import EvidenceConstellation from '@/components/countercut/EvidenceConstellation';
+import InvestigationStepPlayer from '@/components/countercut/InvestigationStepPlayer';
+import DraggableSplitView from '@/components/countercut/DraggableSplitView';
 
 export default function CountercutPage() {
   const searchParams = useSearchParams();
@@ -147,6 +150,31 @@ export default function CountercutPage() {
     if (!customQuery.trim()) return;
     triggerInvestigation(mode, selectedMovieId, customQuery);
     setCustomQuery('');
+  };
+
+  const [focusedEvidenceId, setFocusedEvidenceId] = useState<string | null>(null);
+  const [revealedSpoilers, setRevealedSpoilers] = useState<Set<string>>(new Set());
+
+  const handleSelectEvidence = (evidenceId?: string) => {
+    if (!evidenceId) {
+      const rail = document.getElementById('evidence-rail-header');
+      if (rail) rail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setFocusedEvidenceId(evidenceId);
+    const el = document.getElementById(`evidence-card-${evidenceId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const toggleSpoiler = (id: string) => {
+    setRevealedSpoilers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -486,12 +514,15 @@ export default function CountercutPage() {
                         {claim.evidenceIds.length > 0 && (
                           <span className="ml-2 inline-flex gap-1">
                             {claim.evidenceIds.map((eid) => (
-                              <span
+                              <button
                                 key={eid}
-                                className="text-[10px] font-mono bg-black/40 text-[#dd7058] border border-[#dd7058]/30 px-1 rounded"
+                                type="button"
+                                onClick={() => handleSelectEvidence(eid)}
+                                className="text-[10px] font-mono bg-black/40 hover:bg-[#dd7058] hover:text-[#140e0c] text-[#dd7058] border border-[#dd7058]/40 px-1.5 py-0.5 rounded transition-all cursor-pointer font-bold shadow-sm"
+                                title={`Focus evidence record #${eid}`}
                               >
                                 #{eid}
-                              </span>
+                              </button>
                             ))}
                           </span>
                         )}
@@ -545,43 +576,32 @@ export default function CountercutPage() {
             </div>
           )}
 
-          {/* 4-Stage Connected Tool Timeline */}
-          <div className="p-4 rounded-2xl bg-[#171615] border border-[#54433b] space-y-3">
-            <div className="text-[10px] font-mono uppercase tracking-[1.5px] text-[#a69a8f]">
-              INVESTIGATION WORKFLOW
-            </div>
+          {/* Interactive Split Comparison Slider (Bencho Split View inspired) */}
+          {activeCase && (
+            <DraggableSplitView activeCase={activeCase} />
+          )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 01</div>
-                <div className="text-xs font-bold text-white">Review Intersections</div>
-                <div className="text-[10px] text-[#a99c91]">SQL query executed</div>
-              </div>
-              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 02</div>
-                <div className="text-xs font-bold text-white">Evidence Extraction</div>
-                <div className="text-[10px] text-[#a99c91]">Relational quotes verified</div>
-              </div>
-              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 03</div>
-                <div className="text-xs font-bold text-white">Taste Synthesis</div>
-                <div className="text-[10px] text-[#a99c91]">
-                  {activeCase?.isDeterministicFallback ? 'Deterministic PL/pgSQL' : 'Gemini Flash Agent'}
-                </div>
-              </div>
-              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
-                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 04</div>
-                <div className="text-xs font-bold text-white">Double-Feature Propose</div>
-                <div className="text-[10px] text-[#a99c91]">User consent required</div>
-              </div>
-            </div>
-          </div>
+          {/* Interactive Evidence Constellation Graph (React Flow / Node topology) */}
+          {activeCase && (
+            <EvidenceConstellation 
+              activeCase={activeCase} 
+              onSelectEvidence={handleSelectEvidence} 
+            />
+          )}
+
+          {/* Recorded Investigation Timeline / Step Player (Bencho Step Player inspired) */}
+          {activeCase && (
+            <InvestigationStepPlayer 
+              activeCase={activeCase} 
+              onJumpToEvidence={() => handleSelectEvidence()} 
+            />
+          )}
         </div>
 
         {/* Right Evidence Rail (~32% width on desktop) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-[#54433b]/40">
+          <div id="evidence-rail-header" className="flex items-center justify-between pb-2 border-b border-[#54433b]/40">
             <div className="flex items-center gap-2">
               <Database className="w-4 h-4 text-[#dd7058]" />
               <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
@@ -596,44 +616,82 @@ export default function CountercutPage() {
           {/* Evidence Records List */}
           <div className="space-y-3">
             {activeCase?.evidence && activeCase.evidence.length > 0 ? (
-              activeCase.evidence.map((ev) => (
-                <div
-                  key={ev.id}
-                  className="p-4 rounded-xl bg-[#171615] border border-[#54433b] space-y-2 hover:border-[#dd7058]/50 transition-colors shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-[#dd7058] uppercase font-bold tracking-wider">
-                      {ev.author ? `${ev.author.toUpperCase()} · ` : ''}#{ev.id}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {ev.isSpoiler && (
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-600/60 text-amber-300 font-bold">
-                          SPOILER
-                        </span>
-                      )}
-                      {ev.rating !== undefined && (
-                        <span className="text-xs font-bold text-[#dd7058]">★ {ev.rating}</span>
-                      )}
+              activeCase.evidence.map((ev) => {
+                const isFocused = focusedEvidenceId === ev.id;
+                const isSpoilerRevealed = revealedSpoilers.has(ev.id);
+
+                return (
+                  <div
+                    key={ev.id}
+                    id={`evidence-card-${ev.id}`}
+                    className={`p-4 rounded-xl bg-[#171615] border space-y-2.5 transition-all duration-300 shadow-sm ${
+                      isFocused
+                        ? 'border-[#dd7058] ring-2 ring-[#dd7058] shadow-[0_0_20px_rgba(221,112,88,0.35)] scale-[1.01]'
+                        : 'border-[#54433b] hover:border-[#dd7058]/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-[#dd7058] uppercase font-bold tracking-wider">
+                        {ev.author ? `${ev.author.toUpperCase()} · ` : ''}#{ev.id}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {ev.isSpoiler && (
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-600/60 text-amber-300 font-bold">
+                            SPOILER
+                          </span>
+                        )}
+                        {ev.rating !== undefined && (
+                          <span className="text-xs font-bold text-[#dd7058]">★ {ev.rating}</span>
+                        )}
+                      </div>
                     </div>
+
+                    <div className="text-xs font-bold text-white">{ev.title}</div>
+
+                    {/* Spoiler Protection Masking */}
+                    {ev.isSpoiler && !isSpoilerRevealed ? (
+                      <div className="p-3 rounded-lg bg-[#0e0d0c] border border-amber-900/40 text-center my-1.5 space-y-1">
+                        <div className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>Contains Film Spoilers</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSpoiler(ev.id)}
+                          className="text-[11px] text-[#f4eee6] underline hover:text-[#dd7058] transition-colors"
+                        >
+                          Click to reveal quote
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <blockquote className="text-[11px] text-[#cfc2b6] leading-relaxed italic border-l-2 border-[#dd7058]/40 pl-2.5 my-1">
+                          "{ev.snippet}"
+                        </blockquote>
+                        {ev.isSpoiler && (
+                          <button
+                            type="button"
+                            onClick={() => toggleSpoiler(ev.id)}
+                            className="text-[10px] font-mono text-[#8c7f73] hover:text-[#a99c91] mt-1 block"
+                          >
+                            Hide spoiler
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {(ev.metadata?.movieId || ev.targetId) && (
+                      <Link
+                        href={`/movies/${ev.metadata?.movieId || ev.targetId}`}
+                        className="text-[11px] font-mono text-[#a99c91] hover:text-[#dd7058] flex items-center gap-1 pt-1 transition-colors"
+                      >
+                        <span>View film details</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    )}
                   </div>
-
-                  <div className="text-xs font-bold text-white">{ev.title}</div>
-
-                  <blockquote className="text-[11px] text-[#cfc2b6] leading-relaxed italic border-l-2 border-[#dd7058]/40 pl-2.5 my-1">
-                    "{ev.snippet}"
-                  </blockquote>
-
-                  {(ev.metadata?.movieId || ev.targetId) && (
-                    <Link
-                      href={`/movies/${ev.metadata?.movieId || ev.targetId}`}
-                      className="text-[11px] font-mono text-[#a99c91] hover:text-[#dd7058] flex items-center gap-1 pt-1 transition-colors"
-                    >
-                      <span>View film details</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  )}
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="p-8 rounded-xl bg-[#171615] border border-[#54433b] text-center text-xs text-[#a99c91]">
                 No review evidence linked yet. Run an investigation to retrieve relational records.

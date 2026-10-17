@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import InteractiveErDiagram from '@/components/InteractiveErDiagram';
+import MonacoSqlEditor from '@/components/dbms/MonacoSqlEditor';
+import InteractiveDataGrid from '@/components/dbms/InteractiveDataGrid';
+import QueryJourney from '@/components/dbms/QueryJourney';
 import { 
   Terminal, 
   Play, 
@@ -21,7 +24,8 @@ import {
   RotateCcw,
   GitBranch,
   Search,
-  ExternalLink
+  ExternalLink,
+  Film
 } from 'lucide-react';
 
 const PRESET_QUERIES = [
@@ -109,6 +113,26 @@ export default function DbmsConsolePage() {
   const [tableFilter, setTableFilter] = useState('');
   const [selectedTable, setSelectedTable] = useState<string>('movies');
   const [copiedSql, setCopiedSql] = useState(false);
+  const [resultsView, setResultsView] = useState<'grid' | 'journey'>('grid');
+  const [moviesList, setMoviesList] = useState<any[]>([]);
+  const [selectedMovieId, setSelectedMovieId] = useState<number | null>(1);
+  const [contextualMovie, setContextualMovie] = useState<{
+    movieId: number;
+    title: string;
+    posterUrl: string;
+    avgRating: number | string;
+    director: string;
+    reviewCount?: number;
+    bayesianScore?: number;
+  }>({
+    movieId: 1,
+    title: 'Inception',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg',
+    avgRating: 9.6,
+    director: 'Christopher Nolan',
+    reviewCount: 14,
+    bayesianScore: 9.42,
+  });
 
   // Trigger Lab test state
   const [triggerMovieId, setTriggerMovieId] = useState('1');
@@ -116,12 +140,43 @@ export default function DbmsConsolePage() {
   const [triggerTestResult, setTriggerTestResult] = useState<any>(null);
   const [isTestingTrigger, setIsTestingTrigger] = useState(false);
 
+  const handleSelectMovie = (id: number, title?: string) => {
+    setSelectedMovieId(id);
+    const found = moviesList.find(m => m.movie_id === id || (title && m.title.toLowerCase() === title.toLowerCase()));
+    if (found) {
+      setContextualMovie({
+        movieId: found.movie_id,
+        title: found.title,
+        posterUrl: found.poster_url || 'https://image.tmdb.org/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg',
+        avgRating: found.avg_rating,
+        director: found.director,
+        reviewCount: found.review_count,
+        bayesianScore: found.bayesian_score,
+      });
+    } else if (title) {
+      setContextualMovie(prev => ({
+        ...prev,
+        movieId: id,
+        title,
+      }));
+    }
+  };
+
   // Load live schema and engine metadata
   useEffect(() => {
     fetch('/api/dbms/schema')
       .then(r => r.json())
       .then(data => {
         setSchemaData(data);
+      })
+      .catch(console.error);
+
+    fetch('/api/movies?limit=50')
+      .then(r => r.json())
+      .then(data => {
+        if (data.movies) {
+          setMoviesList(data.movies);
+        }
       })
       .catch(console.error);
 
@@ -145,6 +200,14 @@ export default function DbmsConsolePage() {
         setQueryResults(null);
       } else {
         setQueryResults(data);
+        if (data.rows && data.rows.length > 0) {
+          const first = data.rows[0];
+          const mid = first.movie_id ? Number(first.movie_id) : null;
+          const mtitle = first.title || null;
+          if (mid || mtitle) {
+            handleSelectMovie(mid || 1, mtitle);
+          }
+        }
       }
     } catch (err: any) {
       setExecutionError(err.message || 'Network request failed');
@@ -401,19 +464,15 @@ export default function DbmsConsolePage() {
                 </select>
               </div>
 
-              {/* SQL Textarea */}
-              <textarea
-                value={sql}
-                onChange={(e) => setSql(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                    e.preventDefault();
-                    handleExecute();
-                  }
-                }}
-                className="flex-1 w-full bg-transparent p-4 font-mono text-xs leading-[1.8] text-[#d8c9be] focus:outline-none resize-none selection:bg-[#684638]"
-                spellCheck={false}
-              />
+              {/* Monaco SQL Editor Component */}
+              <div className="flex-1 p-2 bg-[#121110]">
+                <MonacoSqlEditor
+                  value={sql}
+                  onChange={setSql}
+                  onRun={() => handleExecute()}
+                  height="210px"
+                />
+              </div>
 
               {/* Editor Footer Bar */}
               <div className="flex items-center justify-between px-3.5 py-2 border-t border-white/[0.08] bg-black/20 text-xs">
@@ -456,97 +515,89 @@ export default function DbmsConsolePage() {
               </div>
             </div>
 
-            {/* Results Table Box */}
-            <div className="bg-[#1d1b19] border border-[#574439] rounded-2xl flex flex-col overflow-hidden min-h-[230px] flex-1">
+            {/* Results Box with View Toggle (Grid vs Query Journey) */}
+            <div className="bg-[#1d1b19] border border-[#574439] rounded-2xl flex flex-col overflow-hidden min-h-[290px] flex-1">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#574439] bg-black/20 text-xs">
                 <div className="flex items-center gap-2">
-                  <strong className="text-white font-bold text-xs">Result set</strong>
-                  <span className="text-[#aaa095] font-normal">/ preview</span>
+                  <div className="flex items-center gap-1 bg-[#141211] p-0.5 rounded-lg border border-[#54433b]/60">
+                    <button
+                      type="button"
+                      onClick={() => setResultsView('grid')}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition-all ${
+                        resultsView === 'grid'
+                          ? 'bg-[#eee7dd] text-[#1d1713] font-bold shadow-sm'
+                          : 'text-[#bcaea3] hover:text-white'
+                      }`}
+                    >
+                      Result Grid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResultsView('journey')}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold transition-all flex items-center gap-1 ${
+                        resultsView === 'journey'
+                          ? 'bg-[#eee7dd] text-[#1d1713] font-bold shadow-sm'
+                          : 'text-[#bcaea3] hover:text-white'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3 text-[#dd7058]" />
+                      <span>Query Journey</span>
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {queryResults && (
                     <span className="text-[11px] text-[#97887e] font-mono">
-                      {queryResults.rows.length} rows · {queryResults.durationMs || 0}ms
+                      {queryResults.rows?.length || 0} rows · {queryResults.durationMs || 0}ms
                     </span>
-                  )}
-                  {queryResults && queryResults.rows.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleExportCsv}
-                      className="text-[11px] text-[#dd7058] hover:underline flex items-center gap-1"
-                    >
-                      <Download className="w-3 h-3" />
-                      <span>Export CSV</span>
-                    </button>
                   )}
                 </div>
               </div>
 
-              {/* Table Data or Error Display */}
-              <div className="flex-1 overflow-auto p-0">
+              {/* Content Panel: Grid or Flow */}
+              <div className="p-3 flex-1 overflow-auto">
                 {executionError ? (
-                  <div className="p-4 bg-red-950/20 border-l-4 border-red-500 m-3 rounded text-xs text-red-200 font-mono space-y-1">
+                  <div className="p-4 bg-red-950/20 border-l-4 border-red-500 rounded text-xs text-red-200 font-mono space-y-1">
                     <strong className="block text-red-400 font-bold">Query Error:</strong>
                     <div>{executionError}</div>
                   </div>
-                ) : queryResults && queryResults.rows.length > 0 ? (
-                  <table className="w-full border-collapse text-[11px]">
-                    <thead>
-                      <tr className="bg-[#2a241f] border-b border-[#3b322c]">
-                        {queryResults.columns.map((col, idx) => (
-                          <th key={idx} className="text-left font-semibold text-[#bcad9f] px-3 py-2 uppercase tracking-wider text-[10px]">
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {queryResults.rows.map((row, rIdx) => (
-                        <tr key={rIdx} className="border-b border-[#3b322c]/50 hover:bg-white/[0.02] transition-colors">
-                          {queryResults.columns.map((col, cIdx) => {
-                            const val = row[col];
-                            const isNumeric = typeof val === 'number';
-                            return (
-                              <td key={cIdx} className={`px-3 py-2 text-[#eee2d7] ${isNumeric ? 'font-bold text-[#e6a188]' : ''}`}>
-                                {val === null || val === undefined 
-                                  ? <span className="text-[#6c5a4c] italic">null</span> 
-                                  : typeof val === 'object' 
-                                    ? JSON.stringify(val) 
-                                    : String(val)}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                ) : resultsView === 'journey' ? (
+                  <QueryJourney
+                    sql={sql}
+                    rowCount={queryResults?.rowCount ?? queryResults?.rows?.length ?? 0}
+                    durationMs={queryResults?.durationMs || 12}
+                    columns={queryResults?.columns || []}
+                  />
                 ) : (
-                  <div className="flex items-center justify-center h-full min-h-[140px] text-xs text-[#97887e]">
-                    {isExecuting ? 'Running query in PostgreSQL...' : 'Execute a query to inspect live records'}
-                  </div>
+                  <InteractiveDataGrid
+                    columns={queryResults?.columns || []}
+                    rows={queryResults?.rows || []}
+                    onSelectMovie={handleSelectMovie}
+                    selectedMovieId={selectedMovieId}
+                  />
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Column: "Where this data appears" (Data Lineage) */}
+          {/* Right Column: "Where this data appears" (Data Lineage & Live Film Inspector) */}
           <aside className="bg-[#24201d] border border-[#574439] rounded-2xl p-4 flex flex-col justify-between">
             <div className="space-y-4">
               <div>
                 <h2 className="text-sm font-bold text-white m-0">Where this data appears</h2>
                 <p className="text-[11px] text-[#b4a79b] leading-relaxed mt-1">
-                  Understand how SQL query results become the film cards and community stats visible in Discover.
+                  Click any movie row in the data grid to inspect live relational provenance in the cinematic preview.
                 </p>
               </div>
 
-              {/* Poster Snapshot */}
-              <div className="h-[140px] rounded-xl overflow-hidden relative border border-[#664839] p-3.5 flex flex-col justify-end shadow-md group bg-[#1c1815]">
+              {/* Contextual Film Card */}
+              <div className="h-[155px] rounded-xl overflow-hidden relative border border-[#664839] p-3.5 flex flex-col justify-end shadow-md group bg-[#1c1815]">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-[1]" />
                 <img
-                  src="https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEhniE9iAOhHP.jpg"
-                  alt="Inception"
+                  src={contextualMovie.posterUrl}
+                  alt={contextualMovie.title}
                   onError={(e) => {
-                    (e.target as HTMLElement).style.opacity = '0';
+                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500';
                   }}
                   className="absolute inset-0 w-full h-full object-cover filter brightness-[0.6] group-hover:scale-105 transition-transform duration-500"
                 />
@@ -554,15 +605,31 @@ export default function DbmsConsolePage() {
                   <div className="flex items-center gap-1.5 mb-1">
                     <TableIcon className="w-3.5 h-3.5 text-[#dd7058]" />
                     <span className="text-[10px] font-mono text-[#dd7058] uppercase font-bold tracking-wider">
-                      LIVE RECORD #1
+                      RECORD #{contextualMovie.movieId}
                     </span>
                   </div>
-                  <strong className="text-base font-bold text-white block leading-tight">
-                    Inception (2010)
+                  <strong className="text-base font-bold text-white block leading-tight truncate">
+                    {contextualMovie.title}
                   </strong>
                   <small className="text-[10px] text-[#eabfa2] block mt-0.5">
-                    ★ 9.8 community rating · ranked #1 in Sci-Fi
+                    ★ {Number(contextualMovie.avgRating || 9.5).toFixed(1)} community rating · {contextualMovie.director || 'Cinema'}
                   </small>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Link
+                      href={`/movies/${contextualMovie.movieId}`}
+                      className="text-[10px] text-[#f4eee6] hover:text-[#dd7058] underline flex items-center gap-0.5"
+                    >
+                      <span>Film profile</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </Link>
+                    <span className="text-white/20">•</span>
+                    <Link
+                      href={`/countercut?movieId=${contextualMovie.movieId}`}
+                      className="text-[10px] text-[#dd7058] hover:underline flex items-center gap-0.5"
+                    >
+                      <span>Investigate in Countercut</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
 
@@ -573,20 +640,20 @@ export default function DbmsConsolePage() {
                 </div>
                 <div className="font-mono text-[11px] text-[#d7c8bc] bg-[#191714] p-3 rounded-lg border border-[#584438] space-y-1.5 leading-relaxed">
                   <div><span className="text-[#dd7058] font-bold">movies</span></div>
-                  <div className="text-[#a99c91] pl-3">↳ movie_id, avg_rating</div>
+                  <div className="text-[#a99c91] pl-3">↳ movie_id: {contextualMovie.movieId}, score: {Number(contextualMovie.avgRating || 9.0).toFixed(1)}</div>
                   <div><span className="text-[#dd7058] font-bold">v_trending_movies</span></div>
-                  <div className="text-[#a99c91] pl-3">↳ weighted Bayesian ranking</div>
-                  <div><span className="text-[#dd7058] font-bold">Discover</span></div>
-                  <div className="text-[#a99c91] pl-3">↳ featured cards & shelves</div>
+                  <div className="text-[#a99c91] pl-3">↳ weighted Bayesian ranking prior</div>
+                  <div><span className="text-[#dd7058] font-bold">Discover & Shelves</span></div>
+                  <div className="text-[#a99c91] pl-3">↳ materialized in 3D perspective shelf</div>
                 </div>
               </div>
 
               {/* Link to CineTrace */}
               <Link
-                href="/trace"
+                href={`/trace?movieId=${contextualMovie.movieId}`}
                 className="w-full py-2.5 px-3 rounded-lg border border-[#83604c] hover:border-[#dd7058] bg-white/[0.02] text-[#edc2a9] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors block text-center"
               >
-                <span>Explore mutation lineage in CineTrace →</span>
+                <span>Trace mutation lineage for this film →</span>
               </Link>
             </div>
 

@@ -6,6 +6,7 @@ import { Play, ArrowUpRight, Star } from 'lucide-react';
 import { Movie } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
 import TrailerModal from '@/components/TrailerModal';
+import CinemaShelf from '@/components/discover/CinemaShelf';
 
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -215,25 +216,11 @@ export default function Home() {
         </section>
       )}
 
-      {/* Section Heading */}
-      <div className="flex items-center justify-between pt-2">
-        <h2 className="text-lg font-bold text-[#f4eee6] tracking-tight m-0">
-          Worth your time <span className="text-[#957a6b] font-normal text-sm"> / Critically loved</span>
-        </h2>
-        <Link 
-          href="/lists"
-          className="text-xs font-semibold text-[#efa993] hover:text-white transition-colors"
-        >
-          Browse all films →
-        </Link>
-      </div>
-
-      {/* Film Row Shelf */}
-      <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3.5">
-        {shelfMovies.map(movie => (
-          <MovieCard key={movie.movie_id} movie={movie} />
-        ))}
-      </section>
+      {/* Interactive Living Cinema Shelf */}
+      <CinemaShelf 
+        movies={remaining} 
+        onOpenTrailer={handleOpenTrailer} 
+      />
 
       {/* Dynamic Action / Trace Dock (Appears when genuine recent activity exists) */}
       {recentEvent && (

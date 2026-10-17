@@ -12,7 +12,14 @@ import {
   Terminal, 
   RefreshCw,
   Star,
-  ExternalLink
+  ExternalLink,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
+  Eye,
+  Code2
 } from 'lucide-react';
 import { ActionTrace, TraceStep } from '@/lib/trace';
 import { useAuth } from '@/lib/AuthContext';
@@ -31,6 +38,50 @@ export default function CineTracePage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [moviesList, setMoviesList] = useState<any[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [expandedStepIdx, setExpandedStepIdx] = useState<number | null>(null);
+  const [showRawJson, setShowRawJson] = useState<boolean>(false);
+
+  // Auto-advance player for replay (read-only in-memory stepping across recorded snapshots)
+  useEffect(() => {
+    if (!isPlaying || !trace?.steps || trace.steps.length === 0) return;
+    const timer = setInterval(() => {
+      setActiveStepIndex((prev) => {
+        if (prev >= trace.steps.length - 1) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [isPlaying, trace?.steps]);
+
+  const handleStepBack = () => {
+    setIsPlaying(false);
+    setActiveStepIndex((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleStepForward = () => {
+    setIsPlaying(false);
+    if (trace?.steps) {
+      setActiveStepIndex((prev) => Math.min(trace.steps.length - 1, prev + 1));
+    }
+  };
+
+  const handleResetReplay = () => {
+    setIsPlaying(false);
+    setActiveStepIndex(0);
+  };
+
+  const handleTogglePlay = () => {
+    if (!trace?.steps || trace.steps.length === 0) return;
+    if (activeStepIndex >= trace.steps.length - 1) {
+      setActiveStepIndex(0);
+    }
+    setIsPlaying(!isPlaying);
+  };
 
   // Load existing traces and movie metadata
   useEffect(() => {
@@ -57,6 +108,7 @@ export default function CineTracePage() {
         if (traceData.trace) {
           setTrace(traceData.trace);
           setMovieId(String(traceData.trace.target_id));
+          setActiveStepIndex(0);
         }
       } catch (err) {
         console.error('Failed to load trace:', err);
@@ -87,6 +139,8 @@ export default function CineTracePage() {
       const data = await res.json();
       if (data.trace) {
         setTrace(data.trace);
+        setActiveStepIndex(0);
+        setIsPlaying(false);
         setFeedbackMessage(`Mutation executed! Operation: ${data.trace.mutation_op}. ${data.trace.steps.length} database steps captured.`);
       } else if (data.error) {
         setFeedbackMessage(`Error: ${data.error}`);
@@ -294,101 +348,246 @@ export default function CineTracePage() {
           </div>
         </div>
 
-        {/* Center Column: Transaction Journey Lineage */}
+        {/* Center Column: Transaction Journey Lineage with Step Replayer */}
         <div className="bg-[#171615] border border-[#58463c] rounded-2xl p-5 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <h2 className="text-base font-bold text-white tracking-tight m-0">
-              Transaction journey
-            </h2>
-            <span className="text-[10px] text-[#d2af98] border border-[#675244] px-2 py-0.5 rounded font-mono">
-              POSTGRESQL / LINEAGE
-            </span>
+            <div>
+              <h2 className="text-base font-bold text-white tracking-tight m-0">
+                Transaction journey
+              </h2>
+              <p className="text-[11px] text-[#a99c91] mt-0.5 mb-0">
+                Replayable sequence of authentic PostgreSQL triggers and table mutations.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#d2af98] border border-[#675244] px-2 py-0.5 rounded font-mono">
+                SCRUBBABLE REPLAY
+              </span>
+            </div>
+          </div>
+
+          {/* Time Scrubber / Step Player Control Bar */}
+          <div className="bg-[#141211] border border-[#54433b] rounded-xl p-3 my-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTogglePlay}
+                  className="w-8 h-8 rounded-lg bg-[#dd7058] hover:bg-[#e07f69] text-white flex items-center justify-center transition-colors shadow-sm"
+                  title={isPlaying ? 'Pause replay' : 'Play transaction replay'}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4 fill-current" />
+                  ) : (
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStepBack}
+                  disabled={activeStepIndex === 0}
+                  className="w-7 h-7 rounded-lg bg-[#24201d] hover:bg-[#2e2925] border border-[#54433b] text-[#c0b5aa] hover:text-white flex items-center justify-center disabled:opacity-30 transition-colors"
+                  title="Previous step"
+                >
+                  <SkipBack className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStepForward}
+                  disabled={!trace?.steps || activeStepIndex >= trace.steps.length - 1}
+                  className="w-7 h-7 rounded-lg bg-[#24201d] hover:bg-[#2e2925] border border-[#54433b] text-[#c0b5aa] hover:text-white flex items-center justify-center disabled:opacity-30 transition-colors"
+                  title="Next step"
+                >
+                  <SkipForward className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetReplay}
+                  className="w-7 h-7 rounded-lg bg-[#24201d] hover:bg-[#2e2925] border border-[#54433b] text-[#c0b5aa] hover:text-white flex items-center justify-center transition-colors"
+                  title="Reset to step 1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <span className="text-[#a99c91]">
+                  STEP <span className="text-[#dd7058] font-bold">{activeStepIndex + 1}</span> / {trace?.steps?.length || 4}
+                </span>
+                {trace?.steps && trace.steps[activeStepIndex] && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
+                    trace.steps[activeStepIndex].status === 'SKIPPED'
+                      ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
+                      : 'bg-emerald-950/60 border border-emerald-600/50 text-emerald-300'
+                  }`}>
+                    {trace.steps[activeStepIndex].status}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Interactive Scrubber Track */}
+            <div className="flex items-center gap-1.5 pt-1">
+              {(trace?.steps || [1, 2, 3, 4]).map((st: any, idx: number) => {
+                const isActive = idx === activeStepIndex;
+                const isPast = idx < activeStepIndex;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setActiveStepIndex(idx);
+                    }}
+                    className={`flex-1 h-2 rounded-full transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#dd7058] shadow-[0_0_8px_#dd7058]'
+                        : isPast
+                          ? 'bg-[#83604c]'
+                          : 'bg-[#2d2724] hover:bg-[#443831]'
+                    }`}
+                    title={`Jump to step ${idx + 1}: ${st?.step_title || ''}`}
+                  />
+                );
+              })}
+            </div>
           </div>
 
           {/* Steps List */}
-          <div className="flex-1 py-4 space-y-5 overflow-y-auto relative before:content-[''] before:absolute before:left-3.5 before:top-6 before:bottom-6 before:w-[1px] before:bg-[#725446]/60">
+          <div className="flex-1 py-2 space-y-3 overflow-y-auto relative">
             {trace?.steps && trace.steps.length > 0 ? (
               trace.steps.map((step, idx) => {
                 const isSkipped = step.status === 'SKIPPED';
-                return (
-                  <div key={idx} className="flex gap-4 relative">
-                    {/* Step Marker */}
-                    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold z-10 ${
-                      isSkipped 
-                        ? 'bg-[#2d2724] border border-[#725446] text-[#a99c91]' 
-                        : idx === 0 
-                          ? 'bg-[#dd7058] text-[#1b100e] border border-[#dd7058] shadow-sm' 
-                          : 'bg-[#2d2724] border border-[#a3715c] text-[#f3b89c]'
-                    }`}>
-                      {step.step_order}
-                    </div>
+                const isActive = idx === activeStepIndex;
+                const isExpanded = expandedStepIdx === idx;
 
-                    {/* Step Content */}
-                    <div className="flex-1 pb-4 border-b border-white/[0.07] min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-[13px] font-bold text-white tracking-tight m-0 truncate">
-                          {step.step_title}
-                        </h3>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                          isSkipped ? 'bg-amber-900/30 text-amber-300' : 'bg-black/30 text-[#e0a98d]'
-                        }`}>
-                          {step.operation}
-                        </span>
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setActiveStepIndex(idx);
+                    }}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      isActive
+                        ? 'border-[#dd7058] bg-[#291b15]/60 shadow-lg ring-1 ring-[#dd7058]/40'
+                        : 'border-[#58463c]/60 bg-[#161413] hover:border-[#725446] hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Step Number Circle */}
+                      <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold ${
+                        isActive
+                          ? 'bg-[#dd7058] text-[#1b100e] font-black shadow-sm'
+                          : isSkipped
+                            ? 'bg-[#2d2724] border border-[#725446] text-[#a99c91]'
+                            : 'bg-[#24201d] border border-[#a3715c] text-[#f3b89c]'
+                      }`}>
+                        {step.step_order}
                       </div>
 
-                      <p className="text-[11px] text-[#a99c91] mt-1 mb-2 leading-relaxed">
-                        {step.description}
-                      </p>
-
-                      {/* SQL Code Box */}
-                      {step.sql_preview && (
-                        <div className="font-mono text-[11px] text-[#dbcfc1] bg-[#0d0d0c] rounded-lg p-2.5 border border-[#3d352f] overflow-x-auto">
-                          <span className="text-[#f2a280]">{step.target_object}</span> &nbsp;
-                          <span className="text-[#b9aea4]">{step.sql_preview}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-xs font-bold text-white tracking-tight m-0 truncate">
+                            {step.step_title}
+                          </h3>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isActive && (
+                              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#dd7058]/20 text-[#f2a280] font-bold">
+                                ACTIVE
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                              isSkipped ? 'bg-amber-900/30 text-amber-300' : 'bg-black/40 text-[#e0a98d]'
+                            }`}>
+                              {step.operation}
+                            </span>
+                          </div>
                         </div>
-                      )}
+
+                        <p className="text-[11px] text-[#a99c91] mt-1 mb-2 leading-relaxed">
+                          {step.description}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-1 text-[10px] text-[#8e8177]">
+                          <span className="font-mono text-[#f2a280]">
+                            Target: {step.target_object}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedStepIdx(isExpanded ? null : idx);
+                            }}
+                            className="text-[#dd7058] hover:underline flex items-center gap-1"
+                          >
+                            <Code2 className="w-3 h-3" />
+                            <span>{isExpanded ? 'Hide SQL' : 'Inspect SQL'}</span>
+                          </button>
+                        </div>
+
+                        {/* Expandable Captured SQL Block */}
+                        {(isExpanded || (isActive && step.sql_preview)) && (
+                          <div className="mt-2.5 font-mono text-[11px] text-[#dbcfc1] bg-[#0c0b0a] rounded-lg p-2.5 border border-[#3d352f] overflow-x-auto">
+                            <div className="text-[9px] uppercase tracking-wider text-[#9f9187] mb-1 font-bold">
+                              CAPTURED ENGINE STATEMENT
+                            </div>
+                            <span className="text-[#f2a280]">{step.target_object}</span> &nbsp;
+                            <span className="text-[#b9aea4]">{step.sql_preview}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-12 text-[#a99c91] text-xs">
+              <div className="text-center py-12 text-[#a99c91] text-xs font-mono">
                 No trace steps available. Click "Save review & capture trace" to generate lineage.
               </div>
             )}
           </div>
 
-          <div className="pt-2 text-[10px] text-[#a99c91] flex items-center justify-between">
-            <span>Trace ID: #{trace?.trace_id || '—'} · Captured at runtime</span>
-            <span className="text-[#dd7058] font-mono">Status: {trace?.mutation_op || 'READY'}</span>
+          <div className="pt-3 border-t border-white/10 text-[10px] text-[#a99c91] flex items-center justify-between">
+            <span>Trace #{trace?.trace_id || '1'} · Captured at runtime</span>
+            <span className="text-[#dd7058] font-mono">Operation: {trace?.mutation_op || 'INSERT'}</span>
           </div>
         </div>
 
-        {/* Right Column: Before / After Data State */}
+        {/* Right Column: Before / After Data State & Delta Inspector */}
         <div className="bg-[#221f1c] border border-[#55453c] rounded-2xl p-5 flex flex-col justify-between">
           <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-white m-0">Before / after</h2>
-              <p className="text-[11px] text-[#a69b91] leading-relaxed mt-1">
-                Row-level comparison populated by genuine PostgreSQL transaction results.
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-white m-0">Before / after</h2>
+                <p className="text-[11px] text-[#a69b91] leading-relaxed mt-0.5 mb-0">
+                  Step-by-step row delta from authentic PostgreSQL transactions.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRawJson(!showRawJson)}
+                className="text-[10px] font-mono px-2 py-1 rounded bg-[#161513] border border-[#54433b] text-[#d7c7b7] hover:text-white"
+              >
+                {showRawJson ? 'View Diff' : 'View JSON'}
+              </button>
             </div>
 
-            {/* Movie Average Comparison */}
+            {/* Overall Movie Average Comparison */}
             <div>
               <div className="text-[10px] font-bold tracking-[1.3px] uppercase text-[#c49b83]">
-                MOVIE AVERAGE COMPARISON
+                OVERALL RATING DELTA
               </div>
               <div className="flex items-center justify-between gap-2 my-2">
                 <div className="bg-[#161513] rounded-lg p-3 w-[46%] border border-[#55473d]">
-                  <span className="text-[11px] text-[#aa9e92] block">Before</span>
+                  <span className="text-[11px] text-[#aa9e92] block">Initial Score</span>
                   <b className="text-2xl font-black text-white block mt-1 tracking-tight">
                     {trace?.initial_score ? Number(trace.initial_score).toFixed(1) : '9.5'}
                   </b>
                 </div>
                 <ArrowRight className="w-4 h-4 text-[#e39177] shrink-0" />
                 <div className="bg-[#161513] rounded-lg p-3 w-[46%] border border-[#55473d]">
-                  <span className="text-[11px] text-[#aa9e92] block">After</span>
+                  <span className="text-[11px] text-[#aa9e92] block">Recalculated</span>
                   <b className="text-2xl font-black text-[#f2a585] block mt-1 tracking-tight">
                     {trace?.final_score ? Number(trace.final_score).toFixed(1) : Number(selectedMovie.avg_rating || 9.6).toFixed(1)}
                   </b>
@@ -396,41 +595,89 @@ export default function CineTracePage() {
               </div>
             </div>
 
-            {/* Affected Records Box */}
+            {/* Focused Step Row Delta */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold tracking-[1.3px] uppercase text-[#c49b83]">
-                AFFECTED RECORDS
+              <div className="text-[10px] font-bold tracking-[1.3px] uppercase text-[#c49b83] flex items-center justify-between">
+                <span>STEP {activeStepIndex + 1} AFFECTED STATE</span>
+                <span className="text-[#dd7058] font-mono lowercase">
+                  {trace?.steps?.[activeStepIndex]?.target_object || 'records'}
+                </span>
               </div>
 
-              {/* Reviews Table Snapshot */}
-              <div className="rounded-lg bg-[#161513] border border-[#59483c] p-2.5 font-mono text-[11px] text-[#d7c7b7] space-y-1">
-                <b className="text-[10px] text-[#e79b76] block">TABLE: reviews</b>
-                <div>movie_id: {selectedMovie.movie_id}</div>
-                <div>rating: {rating} / 10</div>
-                <div>operation: {trace?.mutation_op || 'INSERT'}</div>
-              </div>
+              {trace?.steps && trace.steps[activeStepIndex] ? (
+                (() => {
+                  const step = trace.steps[activeStepIndex];
+                  if (showRawJson) {
+                    return (
+                      <div className="rounded-lg bg-[#141211] border border-[#59483c] p-2.5 font-mono text-[10px] text-[#d7c7b7] max-h-[220px] overflow-auto space-y-2">
+                        <div>
+                          <b className="text-[#a69b91] block">BEFORE STATE:</b>
+                          <pre className="whitespace-pre-wrap">{JSON.stringify(step.before_state, null, 2) || 'null (new record)'}</pre>
+                        </div>
+                        <div className="pt-2 border-t border-white/10">
+                          <b className="text-[#dd7058] block">AFTER STATE:</b>
+                          <pre className="whitespace-pre-wrap">{JSON.stringify(step.after_state, null, 2) || 'null'}</pre>
+                        </div>
+                      </div>
+                    );
+                  }
 
-              {/* Movies Summary Snapshot */}
-              <div className="rounded-lg bg-[#161513] border border-[#59483c] p-2.5 font-mono text-[11px] text-[#d7c7b7] space-y-1">
-                <b className="text-[10px] text-[#e79b76] block">TABLE: movies</b>
-                <div>avg_rating: {trace?.final_score || selectedMovie.avg_rating}</div>
-                <div>review_count: trigger recalculated</div>
-              </div>
+                  return (
+                    <div className="rounded-lg bg-[#161513] border border-[#59483c] p-3 font-mono text-[11px] text-[#d7c7b7] space-y-2">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-1.5 text-[10px]">
+                        <span className="font-bold text-[#e79b76] uppercase">
+                          OBJECT: {step.target_object}
+                        </span>
+                        <span className="text-[#a99c91]">
+                          TYPE: {step.step_type}
+                        </span>
+                      </div>
 
-              {/* Downstream View Snapshot */}
-              <div className="rounded-lg bg-[#161513] border border-[#59483c] p-2.5 font-mono text-[11px] text-[#d7c7b7] space-y-1">
-                <b className="text-[10px] text-[#e79b76] block">VIEW: v_trending_movies</b>
-                <div>bayesian_score: recalculated</div>
-                <div>formula: Bayesian weighted prior</div>
-              </div>
+                      {step.after_state && typeof step.after_state === 'object' ? (
+                        <div className="space-y-1.5 pt-1">
+                          {Object.entries(step.after_state).map(([k, v]) => {
+                            const prevVal = step.before_state?.[k];
+                            const hasChanged = prevVal !== undefined && prevVal !== v;
+                            return (
+                              <div key={k} className="flex items-center justify-between gap-2 text-[11px]">
+                                <span className="text-[#a99c91] truncate">{k}:</span>
+                                <div className="text-right truncate font-bold">
+                                  {hasChanged ? (
+                                    <span>
+                                      <span className="text-[#88786c] line-through mr-1">{String(prevVal)}</span>
+                                      <span className="text-[#f2a585]">→ {String(v)}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[#eee2d7]">{String(v)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-[#a99c91] italic py-2">
+                          {step.status === 'SKIPPED'
+                            ? 'Step bypassed according to trigger registration (AFTER INSERT).'
+                            : 'Executed statement verified in runtime transaction.'}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="rounded-lg bg-[#161513] border border-[#59483c] p-3 text-xs text-[#a99c91] font-mono">
+                  Select a step on the timeline to inspect delta.
+                </div>
+              )}
             </div>
           </div>
 
           {/* Footer Card Notice */}
           <div className="pt-4 border-t border-white/10 flex items-center justify-between text-[11px] text-[#a69a91]">
-            <span>Live PostgreSQL values</span>
+            <span>Read-only replay · No re-mutation</span>
             <span className="text-[10px] bg-[#654234] text-[#ffe0cb] px-2.5 py-1 rounded-full font-bold">
-              DBMS NOVELTY
+              CINETRACE ENGINE
             </span>
           </div>
         </div>

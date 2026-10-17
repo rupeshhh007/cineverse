@@ -30,6 +30,7 @@ export default function UserProfilePage() {
   const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [filterRating, setFilterRating] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -273,31 +274,62 @@ export default function UserProfilePage() {
         <div className="lg:col-span-5 space-y-4">
           <div className="p-5 rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-4 shadow-lg">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-              <h2 className="text-sm font-bold text-white tracking-tight m-0">
-                Rating Distribution (1-10)
-              </h2>
-              <span className="text-[10px] font-mono text-[#a99c91]">
-                fn_get_user_analytics
-              </span>
+              <div>
+                <h2 className="text-sm font-bold text-white tracking-tight m-0">
+                  Rating Distribution (1-10)
+                </h2>
+                <p className="text-[10px] text-[#a99c91] mt-0.5 mb-0">
+                  Click any score to filter reviews
+                </p>
+              </div>
+              {filterRating !== null ? (
+                <button
+                  type="button"
+                  onClick={() => setFilterRating(null)}
+                  className="text-[10px] text-[#dd7058] hover:underline font-mono"
+                >
+                  Clear filter (★ {filterRating})
+                </button>
+              ) : (
+                <span className="text-[10px] font-mono text-[#a99c91]">
+                  fn_get_user_analytics
+                </span>
+              )}
             </div>
 
-            {/* Histogram Bars */}
+            {/* Histogram Interactive Bars */}
             <div className="space-y-1.5 pt-1">
               {Array.from({ length: 10 }).map((_, i) => {
                 const score = 10 - i;
                 const count = Number(ratingDist[String(score)] || 0);
                 const pct = (count / maxDistCount) * 100;
+                const isSelected = filterRating === score;
+
                 return (
-                  <div key={score} className="flex items-center gap-2 text-xs">
-                    <span className="w-5 text-right font-mono text-[11px] text-[#a99c91]">{score}</span>
-                    <div className="flex-1 h-3 rounded bg-black/30 overflow-hidden">
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() => setFilterRating(isSelected ? null : score)}
+                    className={`w-full flex items-center gap-2 text-xs py-1 px-2 rounded-lg transition-all text-left ${
+                      isSelected
+                        ? 'bg-[#dd7058]/20 ring-1 ring-[#dd7058]'
+                        : 'hover:bg-white/[0.04]'
+                    }`}
+                    title={`Click to filter reviews with rating ${score}`}
+                  >
+                    <span className={`w-5 text-right font-mono text-[11px] ${isSelected ? 'text-[#dd7058] font-bold' : 'text-[#a99c91]'}`}>
+                      {score}
+                    </span>
+                    <div className="flex-1 h-3 rounded bg-black/40 overflow-hidden">
                       <div 
-                        className="h-full rounded bg-[#dd7058] transition-all duration-500" 
+                        className={`h-full rounded transition-all duration-300 ${isSelected ? 'bg-[#ffb08d] shadow-[0_0_8px_#dd7058]' : 'bg-[#dd7058]'}`}
                         style={{ width: `${pct}%` }} 
                       />
                     </div>
-                    <span className="w-5 font-mono text-[11px] text-[#a99c91]">{count}</span>
-                  </div>
+                    <span className={`w-5 font-mono text-[11px] text-right ${isSelected ? 'text-[#dd7058] font-bold' : 'text-[#a99c91]'}`}>
+                      {count}
+                    </span>
+                  </button>
                 );
               })}
             </div>
@@ -324,21 +356,39 @@ export default function UserProfilePage() {
         <div className="lg:col-span-7 space-y-4">
           <div className="p-5 rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-3.5 shadow-lg">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-              <h2 className="text-sm font-bold text-white tracking-tight m-0">
-                Logged Reviews ({reviews.length})
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-white tracking-tight m-0">
+                  Logged Reviews ({filterRating !== null ? reviews.filter(r => Math.round(Number(r.rating)) === filterRating).length : reviews.length})
+                </h2>
+                {filterRating !== null && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#dd7058]/20 text-[#f2a280]">
+                    ★ {filterRating} filter
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-mono text-[#a99c91]">
                 Chronological
               </span>
             </div>
 
-            {reviews.length === 0 ? (
-              <div className="p-8 text-center text-xs text-[#a99c91]">
-                No film reviews logged by this member yet.
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
-                {reviews.map((r) => (
+            {(() => {
+              const displayed = filterRating !== null
+                ? reviews.filter(r => Math.round(Number(r.rating)) === filterRating)
+                : reviews;
+
+              if (displayed.length === 0) {
+                return (
+                  <div className="p-8 text-center text-xs text-[#a99c91]">
+                    {filterRating !== null
+                      ? `No reviews found with rating ★ ${filterRating}. Click "Clear filter" to view all.`
+                      : 'No film reviews logged by this member yet.'}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+                  {displayed.map((r) => (
                   <div key={r.review_id} className="p-3.5 rounded-xl bg-black/25 border border-white/[0.04] space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <Link 
@@ -372,7 +422,8 @@ export default function UserProfilePage() {
                   </div>
                 ))}
               </div>
-            )}
+            );
+          })()}
           </div>
         </div>
       </div>
