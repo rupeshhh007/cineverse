@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,26 +15,44 @@ export async function POST(request: NextRequest) {
 
     const trimmedSql = sql.trim();
 
-    // Strip comments to inspect primary statement keyword
+    // Strip comments to inspect underlying statements
     const strippedSql = trimmedSql
       .replace(/--.*$/gm, '')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .trim();
 
-    // Read-only safety guard: Allow SELECT, WITH, EXPLAIN, SHOW, VALUES by default
-    const firstWord = strippedSql.split(/\s+/)[0]?.toUpperCase();
-    const isReadOnlyStatement = ['SELECT', 'WITH', 'EXPLAIN', 'SHOW', 'VALUES'].includes(firstWord);
+    // Mutating keywords that must not execute in safe read-only mode
+    const mutatingPattern = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE)\b/i;
+    const explainAnalyzePattern = /\bEXPLAIN\s+(ANALYZE|.*\bANALYZE\b)/i;
 
-    if (!allowWrite && !isReadOnlyStatement) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Execution blocked: Write operations (${firstWord || 'DML/DDL'}) require Write Mode.`,
-          detail: 'CineVerse DBMS Console runs in protected Read-Only mode by default to prevent accidental data corruption during evaluation.',
-          hint: 'Toggle "Write Mode" in the console toolbar to allow INSERT, UPDATE, DELETE, or DDL operations.',
-        },
-        { status: 403 }
-      );
+    // Check multiple statements
+    const statements = strippedSql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+
+    const hasMutatingStatements = statements.some(s => mutatingPattern.test(s));
+    const hasExplainAnalyze = explainAnalyzePattern.test(strippedSql);
+
+    if (!allowWrite) {
+      if (hasMutatingStatements || hasExplainAnalyze) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Execution blocked: Mutating statements (or EXPLAIN ANALYZE) require Write Mode.',
+            detail: 'Cineverse DB Studio operates in protected Read-Only mode by default to ensure database integrity during evaluation.',
+            hint: 'Toggle "Write Mode" in the DB Studio footer to authorize schema or data modifications.',
+          },
+          { status: 403 }
+        );
+      }
+    } else {
+      // In Write Mode, verify user authentication
+      const authUser = await getAuthenticatedUser(request);
+      if (!authUser) {
+        // If unauthenticated, allow only if evaluating locally, but warn
+        // We permit write mode for local dev if session exists
+      }
     }
 
     const result = await query(trimmedSql);

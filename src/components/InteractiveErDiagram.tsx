@@ -33,7 +33,7 @@ export const TABLES: TableNode[] = [
     name: 'users',
     x: 68,
     y: 38,
-    color: '#a9cc92', // Moss
+    color: '#dd7058', // Moss
     description: 'Core member profiles containing authentication credentials, bio, and visual assets.',
     columns: [
       { name: 'user_id', type: 'SERIAL', key: 'PK' },
@@ -63,7 +63,7 @@ export const TABLES: TableNode[] = [
     name: 'movies',
     x: 36,
     y: 35,
-    color: '#a9cc92',
+    color: '#dd7058',
     description: 'Film registry storing release dates, runtime, director, poster URLs, and trigger-cached aggregate ratings.',
     columns: [
       { name: 'movie_id', type: 'SERIAL', key: 'PK' },
@@ -103,7 +103,7 @@ export const TABLES: TableNode[] = [
     name: 'genres',
     x: 6,
     y: 10,
-    color: '#86a873',
+    color: '#e58e74',
     description: 'Taxonomy of film categories used for classification and collaborative filtering.',
     columns: [
       { name: 'genre_id', type: 'SERIAL', key: 'PK' },
@@ -123,7 +123,7 @@ export const TABLES: TableNode[] = [
     name: 'movie_genres',
     x: 21,
     y: 10,
-    color: '#86a873',
+    color: '#e58e74',
     description: 'Many-to-many bridge linking movies with multiple normalized genres.',
     columns: [
       { name: 'movie_id', type: 'INTEGER', key: 'PK, FK' },
@@ -185,7 +185,7 @@ export const TABLES: TableNode[] = [
     name: 'reviews',
     x: 52,
     y: 10,
-    color: '#a9cc92',
+    color: '#dd7058',
     description: 'Reviews and 10-point ratings submitted by users. Triggers recalculate movie stats.',
     columns: [
       { name: 'review_id', type: 'SERIAL', key: 'PK' },
@@ -216,7 +216,7 @@ export const TABLES: TableNode[] = [
     name: 'review_likes',
     x: 68,
     y: 10,
-    color: '#a9cc92',
+    color: '#dd7058',
     description: 'Audit bridge recording helpful votes cast by users on member reviews.',
     columns: [
       { name: 'user_id', type: 'INTEGER', key: 'PK, FK' },
@@ -284,7 +284,7 @@ export const TABLES: TableNode[] = [
     name: 'follows',
     x: 84,
     y: 38,
-    color: '#a9cc92',
+    color: '#dd7058',
     description: 'Directed graph relationship mapping follower/following edges between users.',
     columns: [
       { name: 'follower_id', type: 'INTEGER', key: 'PK, FK' },
@@ -655,7 +655,7 @@ export default function InteractiveErDiagram() {
                     : `M ${sx} ${sy} C ${sx + (tx > sx ? dx : -dx)} ${sy}, ${tx + (tx > sx ? -dx : dx)} ${ty}, ${tx} ${ty}`;
 
                   const strokeColor = isHighlighted 
-                    ? (isDirectPair ? '#efece3' : '#a9cc92') 
+                    ? (isDirectPair ? '#efece3' : '#dd7058') 
                     : '#2b3628';
 
                   return (

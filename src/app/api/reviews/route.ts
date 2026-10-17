@@ -105,46 +105,27 @@ export async function POST(request: NextRequest) {
     const cleanReviewText = typeof reviewText === 'string' ? reviewText.trim() : '';
     const cleanSpoilers = Boolean(hasSpoilers ?? containsSpoilers ?? false);
 
-    // Upsert review (Postgres trigger trg_update_movie_rating will auto-recalc movie stats!)
-    const sql = `
-      INSERT INTO reviews (user_id, movie_id, rating, review_text, has_spoilers, updated_at)
-      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, movie_id)
-      DO UPDATE SET
-        rating = EXCLUDED.rating,
-        review_text = EXCLUDED.review_text,
-        has_spoilers = EXCLUDED.has_spoilers,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *;
-    `;
-
-    const result = await query(sql, [
-      effectiveUserId,
-      parsedMovieId,
-      numRating,
-      cleanReviewText,
-      cleanSpoilers,
-    ]);
-
-    // Fetch the updated movie stats to show the trigger's immediate effect!
-    const movieCheck = await query(
-      `SELECT movie_id, title, avg_rating, review_count FROM movies WHERE movie_id = $1;`,
-      [parsedMovieId]
-    );
+    // Perform authentic mutation with server-side CineTrace provenance tracking
+    const { captureReviewTrace } = await import('@/lib/trace');
+    const traceResult = await captureReviewTrace({
+      userId: effectiveUserId,
+      movieId: parsedMovieId,
+      rating: numRating,
+      reviewText: cleanReviewText,
+      hasSpoilers: cleanSpoilers,
+    });
 
     return NextResponse.json({
       success: true,
-      review: result.rows[0],
-      updatedMovie: movieCheck.rows[0],
+      review: traceResult.review,
+      updatedMovie: traceResult.updatedMovie,
+      traceId: traceResult.trace.trace_id,
+      trace: traceResult.trace,
       triggerEffect: {
         triggerName: 'trg_update_movie_rating',
-        newAvgRating: movieCheck.rows[0]?.avg_rating,
-        newReviewCount: movieCheck.rows[0]?.review_count,
+        newAvgRating: traceResult.updatedMovie?.avg_rating,
+        newReviewCount: traceResult.updatedMovie?.review_count,
       },
-      meta: {
-        sql: result.sql,
-        durationMs: result.durationMs,
-      }
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

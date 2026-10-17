@@ -3,17 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Activity, 
-  Star, 
-  ListOrdered, 
   Clock, 
+  Star, 
   Bookmark,
-  Heart,
-  UserPlus,
-  LogIn,
   Users,
-  Database,
-  ArrowUpRight
+  LogIn,
+  GitBranch,
+  ArrowRight
 } from 'lucide-react';
 import { ActivityLog } from '@/lib/types';
 import { useAuth } from '@/lib/AuthContext';
@@ -66,40 +62,41 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      
+    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl bg-cv-shell border border-cv-border/30 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 shadow-lg">
         <div>
-          <div className="flex items-center gap-1.5 text-cv-muted text-[11px] font-mono uppercase tracking-widest">
-            <Activity className="w-3.5 h-3.5 text-cv-moss" /> The Screening Journal
+          <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#e79178]">
+            CHRONOLOGICAL TIMELINE
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-cv-text mt-1">
-            Activity Feed
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-[-1px] mt-1 m-0">
+            Community Activity
           </h1>
-          <p className="text-xs text-cv-muted mt-1 max-w-xl">
-            Real-time cinephile activity, logged and synchronized through PostgreSQL event triggers <code className="text-cv-moss font-mono">trg_log_review_activity</code> and <code className="text-cv-moss font-mono">trg_log_watchlist_add</code>.
+          <p className="text-xs text-[#a99c91] mt-1 mb-0 max-w-xl">
+            Real-time screening records, review submissions, and curated collections logged in PostgreSQL.
           </p>
         </div>
 
-        {/* Filter Pill Switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-cv-surface border border-cv-border/40 shrink-0 self-start sm:self-auto">
+        {/* Filter Switcher */}
+        <div className="flex items-center p-1 rounded-xl bg-black/30 border border-[#54433b]/40 shrink-0 self-start sm:self-auto">
           <button
+            type="button"
             onClick={() => setFilter('all')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               filter === 'all'
-                ? 'bg-cv-moss text-cv-ink font-bold shadow-sm'
-                : 'text-cv-muted hover:text-cv-text'
+                ? 'bg-[#eee7dd] text-[#161310] font-bold shadow-sm'
+                : 'text-[#b9aea4] hover:text-white'
             }`}
           >
             All activity
           </button>
           <button
+            type="button"
             onClick={() => setFilter('following')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               filter === 'following'
-                ? 'bg-cv-moss text-cv-ink font-bold shadow-sm'
-                : 'text-cv-muted hover:text-cv-text'
+                ? 'bg-[#eee7dd] text-[#161310] font-bold shadow-sm'
+                : 'text-[#b9aea4] hover:text-white'
             }`}
           >
             Following
@@ -107,33 +104,30 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {error && (
-        <ErrorMessage message={error} onRetry={fetchFeed} />
-      )}
+      {error && <ErrorMessage message={error} onRetry={fetchFeed} />}
 
-      {/* 2-Column Layout: Main Feed (Col 8) + Sidebar (Col 4) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
+      {/* 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Main Feed Column */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-3.5">
           {filter === 'following' && !user ? (
-            <div className="p-12 text-center rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4">
-              <p className="text-sm text-cv-muted">Sign in to see activities from cinephiles you follow.</p>
+            <div className="p-10 text-center rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-3">
+              <p className="text-xs text-[#a99c91] m-0">Sign in to see activities from cinephiles you follow.</p>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cv-moss text-cv-ink font-bold text-xs hover:bg-cv-moss/90 transition-colors shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#eee7dd] text-[#161310] font-bold text-xs hover:bg-white transition-colors shadow-sm"
               >
-                <LogIn className="w-4 h-4" /> Sign In
+                <LogIn className="w-3.5 h-3.5" /> Sign In
               </Link>
             </div>
           ) : isLoading ? (
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-32 rounded-2xl bg-cv-shell border border-cv-border/30 animate-pulse" />
+              <div key={i} className="h-24 rounded-2xl bg-[#171615] border border-[#54433b]/30 animate-pulse" />
             ))
           ) : activities.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-cv-shell border border-cv-border/30 space-y-2">
-              <p className="text-sm text-cv-text font-serif">No activity logged in this stream yet.</p>
-              <p className="text-xs text-cv-muted">Rate a film or follow friends to populate your timeline.</p>
+            <div className="p-10 text-center rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-2">
+              <p className="text-sm font-bold text-white m-0">No activity logged in this stream yet.</p>
+              <p className="text-xs text-[#a99c91] m-0">Rate a film or follow friends to populate your timeline.</p>
             </div>
           ) : (
             activities.map((act) => {
@@ -142,7 +136,6 @@ export default function FeedPage() {
               const isList = act.activity_type === 'CREATE_LIST';
               const isWatchlist = act.activity_type === 'WATCHLIST_ADD';
               const isFollow = act.activity_type === 'FOLLOW';
-              const isLike = act.activity_type === 'LIKE_REVIEW';
 
               const initials = (act.display_name || act.username || 'CV')
                 .split(' ')
@@ -154,89 +147,83 @@ export default function FeedPage() {
               return (
                 <div
                   key={act.log_id}
-                  className="p-5 rounded-2xl bg-cv-shell border border-cv-border/30 hover:border-cv-border/60 transition-colors space-y-3.5 shadow-sm"
+                  className="p-4 rounded-xl bg-[#171615] border border-[#54433b]/30 hover:border-[#54433b]/60 transition-colors shadow-sm space-y-2.5"
                 >
-                  {/* Top Bar: User + Action Header + Log Badge */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                  {/* Header Line */}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <Link href={`/profile/${act.user_id}`} className="shrink-0">
                         {act.avatar_url ? (
                           <img
                             src={act.avatar_url}
-                            alt={act.display_name}
-                            className="w-10 h-10 rounded-full object-cover border border-cv-border/40"
+                            alt=""
+                            className="w-7 h-7 rounded-full object-cover border border-[#54433b]"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-cv-surface border border-cv-border/40 flex items-center justify-center font-mono text-xs font-bold text-cv-text">
+                          <div className="w-7 h-7 rounded-full bg-[#785e4b] border border-[#b09681] flex items-center justify-center font-bold text-[10px] text-white">
                             {initials}
                           </div>
                         )}
                       </Link>
 
-                      <div>
-                        <div className="text-xs text-cv-muted">
-                          <Link 
-                            href={`/profile/${act.user_id}`} 
-                            className="font-bold text-cv-text hover:text-cv-moss transition-colors"
-                          >
-                            {act.display_name}
-                          </Link>
-                          <span className="text-cv-muted/70"> @{act.username} </span>
-                          <span className="text-cv-text/90">
-                            {isReview && 'reviewed and rated'}
-                            {isList && 'created a curated list'}
-                            {isWatchlist && 'saved a film to watchlist'}
-                            {isFollow && 'followed another cinephile'}
-                            {isLike && 'liked a community review'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1.5 text-[11px] text-cv-muted/70 mt-0.5 font-mono">
-                          <Clock className="w-3 h-3 text-cv-muted/50" />
-                          <span>{formatRelativeTime(act.created_at)}</span>
-                          <span>•</span>
-                          <span>{new Date(act.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
-                        </div>
+                      <div className="truncate">
+                        <Link 
+                          href={`/profile/${act.user_id}`} 
+                          className="font-bold text-white hover:text-[#dd7058] transition-colors"
+                        >
+                          {act.display_name}
+                        </Link>
+                        <span className="text-[#a99c91] mx-1.5">•</span>
+                        <span className="text-[#a99c91]">
+                          {isReview && 'rated a film'}
+                          {isList && 'created a collection'}
+                          {isWatchlist && 'added to watchlist'}
+                          {isFollow && 'followed a member'}
+                        </span>
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-mono text-cv-muted bg-cv-surface px-2.5 py-1 rounded-lg border border-cv-border/30 shrink-0">
-                      LOG #{act.log_id}
-                    </span>
+                    <div className="flex items-center gap-2 text-[11px] text-[#8f8075] shrink-0 font-mono">
+                      <span>{formatRelativeTime(act.created_at)}</span>
+                      {isReview && (
+                        <Link
+                          href={`/trace?movieId=${meta.movie_id || act.target_id}`}
+                          className="text-[#dd7058] hover:underline font-sans font-semibold text-[10px] hidden sm:inline"
+                        >
+                          Trace →
+                        </Link>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Body Content by Event Type */}
+                  {/* Content snippet */}
                   {isReview && (
-                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/40 gap-4">
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-black/25 border border-white/[0.04]">
                       <div className="flex items-center gap-3 min-w-0">
                         {act.movie_poster && (
                           <img
                             src={act.movie_poster}
-                            alt={act.movie_title || ''}
-                            className="w-12 h-16 rounded-lg object-cover border border-cv-border/40 shrink-0 shadow-sm"
+                            alt=""
+                            className="w-8 h-12 rounded object-cover border border-white/10 shrink-0"
                           />
                         )}
                         <div className="min-w-0">
                           <Link
                             href={`/movies/${meta.movie_id || act.target_id}`}
-                            className="text-sm font-serif font-bold text-cv-text hover:text-cv-moss transition-colors truncate block"
+                            className="text-xs font-bold text-white hover:text-[#dd7058] truncate block"
                           >
-                            {act.movie_title || meta.movie_title || 'Film Review'}
+                            {act.movie_title || meta.movie_title || 'Film'}
                           </Link>
-                          {meta.snippet ? (
-                            <p className="text-xs text-cv-muted/90 line-clamp-2 italic mt-1 leading-relaxed">
+                          {meta.snippet && (
+                            <p className="text-[11px] text-[#b9aea4] italic truncate mt-0.5 m-0">
                               &ldquo;{meta.snippet}&rdquo;
-                            </p>
-                          ) : (
-                            <p className="text-xs text-cv-muted/70 italic mt-0.5">
-                              Rating recorded via PostgreSQL trigger.
                             </p>
                           )}
                         </div>
                       </div>
 
                       {meta.rating && (
-                        <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-cv-moss/10 border border-cv-moss/30 text-cv-moss text-xs font-bold font-mono shrink-0">
+                        <div className="flex items-center gap-1 font-bold text-xs text-[#ffb08d] shrink-0 px-2 py-0.5 rounded bg-white/[0.04] border border-white/5">
                           <Star className="w-3 h-3 fill-current" />
                           <span>{Number(meta.rating).toFixed(1)}</span>
                         </div>
@@ -245,151 +232,55 @@ export default function FeedPage() {
                   )}
 
                   {isWatchlist && (
-                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/40">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-cv-surface-2 border border-cv-border/40 flex items-center justify-center text-cv-moss shrink-0">
-                          <Bookmark className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-xs text-cv-muted">Saved to watchlist: </span>
-                          <Link
-                            href={`/movies/${meta.movie_id || act.target_id}`}
-                            className="text-xs font-bold text-cv-text hover:text-cv-moss block truncate"
-                          >
-                            {act.movie_title || meta.movie_title || `Film #${act.target_id}`}
-                          </Link>
-                        </div>
-                      </div>
+                    <div className="p-2.5 rounded-lg bg-black/25 border border-white/[0.04] text-xs text-[#d5cec4] flex items-center gap-2">
+                      <Bookmark className="w-3.5 h-3.5 text-[#dd7058] shrink-0" />
+                      <span>Bookmarked <strong>{act.movie_title || 'a movie'}</strong> to collection</span>
                     </div>
                   )}
-
-                  {isList && (
-                    <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/40 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-cv-surface-2 border border-cv-border/40 flex items-center justify-center text-cv-moss shrink-0">
-                          <ListOrdered className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-cv-muted">New Curated Collection</div>
-                          <span className="text-xs font-bold text-cv-text">
-                            {meta.list_name || 'Curated Collection'}
-                          </span>
-                        </div>
-                      </div>
-                      <Link
-                        href={act.target_id ? `/lists/${act.target_id}` : '/lists'}
-                        className="text-xs font-bold text-cv-moss hover:underline flex items-center gap-1"
-                      >
-                        <span>View list</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  )}
-
-                  {isFollow && (
-                    <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/40 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-cv-muted">
-                        <UserPlus className="w-4 h-4 text-cv-moss" />
-                        <span>
-                          Connected with cinephile <span className="text-cv-text font-bold">#{act.target_id}</span>
-                        </span>
-                      </div>
-                      <Link
-                        href={`/profile/${act.target_id}`}
-                        className="text-xs font-bold text-cv-moss hover:underline flex items-center gap-1"
-                      >
-                        <span>Profile</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  )}
-
-                  {isLike && (
-                    <div className="p-3.5 rounded-xl bg-cv-surface/70 border border-cv-border/40 flex items-center justify-between text-xs text-cv-muted">
-                      <div className="flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-cv-danger fill-current" />
-                        <span>Upvoted community review #{act.target_id}</span>
-                      </div>
-                    </div>
-                  )}
-
                 </div>
               );
             })
           )}
         </div>
 
-        {/* Sidebar Column */}
-        <div className="lg:col-span-4 space-y-4">
-          
-          {/* Card 1: Your Circle */}
-          <div className="p-5 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between pb-2 border-b border-cv-border/20">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cv-text">
-                <Users className="w-3.5 h-3.5 text-cv-moss" />
-                <span>Your Circle</span>
-              </div>
-              <span className="text-[10px] font-mono text-cv-muted">Active critics</span>
+        {/* Right Sidebar: Recommended Cinephiles */}
+        <aside className="lg:col-span-4 space-y-4">
+          <div className="p-5 rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-3.5 shadow-lg">
+            <div className="text-[10px] font-bold uppercase tracking-[1.5px] text-[#968f87]">
+              FEATURED CINEPHILES
             </div>
 
-            <div className="space-y-3">
-              {FEATURED_CINEPHILES.map((person) => (
-                <div key={person.id} className="flex items-center justify-between p-2.5 rounded-xl bg-cv-surface/50 border border-cv-border/20">
+            <div className="space-y-2.5">
+              {FEATURED_CINEPHILES.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/[0.02] transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-cv-surface-2 border border-cv-border/40 flex items-center justify-center font-mono text-[11px] font-bold text-cv-text shrink-0">
-                      {person.initials}
+                    <div className="w-8 h-8 rounded-full bg-[#785e4b] text-white border border-[#b09681] flex items-center justify-center font-bold text-xs shrink-0">
+                      {c.initials}
                     </div>
                     <div className="min-w-0">
-                      <Link href={`/profile/${person.id}`} className="text-xs font-bold text-cv-text hover:text-cv-moss block truncate">
-                        {person.name}
+                      <Link href={`/profile/${c.id}`} className="text-xs font-bold text-white hover:text-[#dd7058] block truncate">
+                        {c.name}
                       </Link>
-                      <div className="text-[10px] text-cv-muted truncate">
-                        {person.role}
-                      </div>
+                      <span className="text-[10px] text-[#a99c91] block truncate">{c.role}</span>
                     </div>
                   </div>
+
                   <Link
-                    href={`/profile/${person.id}`}
-                    className="text-[11px] font-mono text-cv-moss hover:underline shrink-0"
+                    href={`/profile/${c.id}`}
+                    className="text-[11px] text-[#dd7058] hover:underline font-semibold shrink-0"
                   >
-                    View
+                    View →
                   </Link>
                 </div>
               ))}
             </div>
-          </div>
 
-          {/* Card 2: How The Feed Works */}
-          <div className="p-5 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-3 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cv-text pb-2 border-b border-cv-border/20">
-              <Database className="w-3.5 h-3.5 text-cv-moss" />
-              <span>How The Feed Works</span>
+            <div className="pt-3 border-t border-white/[0.08] text-[11px] text-[#a99c91] leading-relaxed">
+              Cineverse activity stream is powered by PostgreSQL trigger <code className="text-[#f2a280]">trg_log_review_activity</code>.
             </div>
-
-            <p className="text-xs text-cv-muted leading-relaxed">
-              Every card in this timeline is an immutable event stored in the PostgreSQL <code className="text-cv-text font-mono">activity_logs</code> table.
-            </p>
-
-            <div className="p-3 rounded-xl bg-cv-surface-2 border border-cv-border/30 space-y-2 text-[11px] font-mono text-cv-muted">
-              <div>
-                <strong className="text-cv-moss">trg_log_review_activity</strong>
-                <div className="text-cv-muted/80 text-[10px]">Fired on reviews INSERT/UPDATE</div>
-              </div>
-              <div>
-                <strong className="text-cv-moss">trg_log_watchlist_add</strong>
-                <div className="text-cv-muted/80 text-[10px]">Fired on watchlist_items INSERT</div>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-cv-muted/80">
-              Zero client-side simulation. Query results directly reflect database state.
-            </p>
           </div>
-
-        </div>
-
+        </aside>
       </div>
-
     </div>
   );
 }

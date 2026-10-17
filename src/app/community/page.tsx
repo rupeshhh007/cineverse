@@ -3,15 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Award, 
   Trophy, 
   Star, 
   ThumbsUp, 
-  MessageSquare, 
-  ChevronRight, 
-  Medal, 
-  Sparkles,
-  ArrowUpRight
+  ArrowRight
 } from 'lucide-react';
 
 export default function CommunityPage() {
@@ -35,243 +30,118 @@ export default function CommunityPage() {
     fetchLeaderboard();
   }, []);
 
-  const top3 = users.slice(0, 3);
-  const remainingUsers = users.slice(3);
-
   return (
-    <div className="space-y-8 pb-20">
-      
+    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
       {/* Header Banner */}
-      <div className="p-6 sm:p-7 rounded-2xl bg-cv-shell border border-cv-border/30 space-y-2 shadow-xl">
-        <div className="flex items-center gap-1.5 text-cv-muted text-[11px] font-mono uppercase tracking-widest">
-          <Award className="w-3.5 h-3.5 text-cv-moss" /> The Cinephile Guild
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 shadow-lg">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#e79178]">
+            COMMUNITY RANKINGS
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-[-1px] mt-1 m-0">
+            Cinephile Leaderboard
+          </h1>
+          <p className="text-xs text-[#a99c91] mt-1 mb-0 max-w-xl">
+            Community contributors ranked via PostgreSQL window function <code className="text-[#f2a280] font-mono">DENSE_RANK()</code> on reviews authored and helpful votes received.
+          </p>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-cv-text">
-          Community Leaderboard
-        </h1>
-        <p className="text-xs text-cv-muted max-w-2xl leading-relaxed">
-          Dynamic community standings evaluated via PostgreSQL window function: <br />
-          <code className="text-cv-moss font-mono text-[11px]">DENSE_RANK() OVER (ORDER BY total_reviews DESC, total_likes_received DESC)</code>
-        </p>
+
+        <div className="text-xs text-[#a99c91] font-mono px-3 py-1.5 rounded-xl bg-black/30 border border-white/5 shrink-0 self-start sm:self-auto">
+          View: v_user_leaderboard
+        </div>
       </div>
 
-      {/* Top 3 Featured Cinephiles Grid */}
-      {!isLoading && top3.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {top3.map((u, idx) => {
-            const rankTitles = ['#01 Top Reviewer', '#02 Leading Critic', '#03 Dedicated Curator'];
-            const rankTitle = rankTitles[idx] || `#0${u.rank} Rank`;
-            const initials = (u.display_name || u.username || 'CV')
-              .split(' ')
-              .map((n: string) => n[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase();
-
-            const isFirst = u.rank === 1;
-
-            return (
-              <div
-                key={u.user_id}
-                className={`p-6 rounded-2xl border transition-all space-y-4 relative overflow-hidden flex flex-col justify-between ${
-                  isFirst
-                    ? 'bg-cv-surface border-cv-moss/50 shadow-xl ring-1 ring-cv-moss/20'
-                    : 'bg-cv-shell border-cv-border/30 hover:border-cv-border/60'
-                }`}
-              >
-                <div>
-                  {/* Top Rank Badge */}
-                  <div className="flex items-center justify-between pb-3 border-b border-cv-border/20">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-cv-muted">
-                      {rankTitle}
-                    </span>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold ${
-                      isFirst
-                        ? 'bg-cv-moss text-cv-ink'
-                        : 'bg-cv-surface-2 border border-cv-border/40 text-cv-text'
-                    }`}>
-                      {isFirst ? <Trophy className="w-3.5 h-3.5" /> : `#${u.rank}`}
-                    </div>
-                  </div>
-
-                  {/* User Profile Card */}
-                  <div className="flex items-center gap-3.5 pt-2">
-                    {u.avatar_url ? (
-                      <img
-                        src={u.avatar_url}
-                        alt={u.display_name}
-                        className="w-12 h-12 rounded-full object-cover border border-cv-border/40"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-cv-surface-2 border border-cv-border/40 flex items-center justify-center font-mono text-sm font-bold text-cv-text">
-                        {initials}
-                      </div>
-                    )}
-                    <div>
-                      <Link
-                        href={`/profile/${u.user_id}`}
-                        className="text-base font-serif font-bold text-cv-text hover:text-cv-moss transition-colors block"
-                      >
-                        {u.display_name}
-                      </Link>
-                      <div className="text-[11px] font-mono text-cv-muted">
-                        @{u.username}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metrics Row */}
-                  <div className="grid grid-cols-3 gap-2 pt-4">
-                    <div className="p-2.5 rounded-xl bg-cv-surface-2/60 border border-cv-border/20 text-center">
-                      <div className="text-sm font-mono font-bold text-cv-text">
-                        {u.total_reviews}
-                      </div>
-                      <div className="text-[9px] font-mono uppercase text-cv-muted">
-                        Reviews
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-cv-surface-2/60 border border-cv-border/20 text-center">
-                      <div className="text-sm font-mono font-bold text-cv-moss flex items-center justify-center gap-1">
-                        <ThumbsUp className="w-3 h-3" />
-                        <span>{u.total_likes_received}</span>
-                      </div>
-                      <div className="text-[9px] font-mono uppercase text-cv-muted">
-                        Helpful
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-cv-surface-2/60 border border-cv-border/20 text-center">
-                      <div className="text-sm font-mono font-bold text-cv-text flex items-center justify-center gap-0.5">
-                        <Star className="w-3 h-3 text-cv-moss fill-current" />
-                        <span>{u.avg_rating_given}</span>
-                      </div>
-                      <div className="text-[9px] font-mono uppercase text-cv-muted">
-                        Avg Score
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Link
-                  href={`/profile/${u.user_id}`}
-                  className="w-full py-2 rounded-xl bg-cv-surface-2 hover:bg-cv-shell text-xs font-semibold text-cv-text border border-cv-border/30 text-center transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <span>View Cinephile Profile</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Full Leaderboard Table */}
-      <div className="rounded-2xl bg-cv-shell border border-cv-border/30 overflow-hidden shadow-xl">
-        <div className="p-4 bg-cv-surface/70 border-b border-cv-border/30 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cv-text">
-            <Medal className="w-4 h-4 text-cv-moss" />
-            <span>Complete Guild Standings ({users.length} members)</span>
+      {/* Editorial Leaderboard Table */}
+      <div className="bg-[#171615] border border-[#54433b]/40 rounded-2xl overflow-hidden shadow-lg">
+        <div className="p-4 border-b border-white/[0.08] flex items-center justify-between text-xs text-[#a99c91]">
+          <span className="font-bold uppercase tracking-wider text-[10px]">Cinephile</span>
+          <div className="flex items-center gap-8 font-mono text-[10px] uppercase tracking-wider">
+            <span>Reviews</span>
+            <span>Helpful Votes</span>
+            <span className="w-12 text-right">Rank</span>
           </div>
-          <span className="text-[10px] font-mono text-cv-muted">
-            Ordered by DENSE_RANK()
-          </span>
         </div>
 
         {isLoading ? (
-          <div className="p-8 space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-12 bg-cv-surface/50 rounded-xl animate-pulse" />
-            ))}
+          <div className="p-12 text-center text-xs text-[#a99c91] animate-pulse">
+            Calculating window rankings in PostgreSQL...
+          </div>
+        ) : users.length === 0 ? (
+          <div className="p-12 text-center text-xs text-[#a99c91]">
+            No member standings computed yet.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs border-collapse">
-              <thead>
-                <tr className="bg-cv-surface-2/80 border-b border-cv-border/30 text-cv-muted text-[11px]">
-                  <th className="p-3.5 font-semibold text-center w-16">Rank</th>
-                  <th className="p-3.5 font-semibold">Cinephile</th>
-                  <th className="p-3.5 font-semibold text-center">Reviews Written</th>
-                  <th className="p-3.5 font-semibold text-center">Helpful Votes</th>
-                  <th className="p-3.5 font-semibold text-center">Avg Rating Given</th>
-                  <th className="p-3.5 font-semibold text-right pr-5">Profile</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-cv-border/20 bg-cv-shell">
-                {users.map((u) => {
-                  const initials = (u.display_name || u.username || 'CV')
-                    .split(' ')
-                    .map((n: string) => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase();
+          <div className="divide-y divide-white/[0.05]">
+            {users.map((u, idx) => {
+              const rank = u.rank || idx + 1;
+              const isTop = rank === 1;
+              const initials = (u.display_name || u.username || 'CV')
+                .split(' ')
+                .map((n: string) => n[0])
+                .slice(0, 2)
+                .join('')
+                .toUpperCase();
 
-                  return (
-                    <tr key={u.user_id} className="hover:bg-cv-surface/40 transition-colors">
-                      <td className="p-3.5 text-center font-bold">
-                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg text-xs ${
-                          u.rank === 1
-                            ? 'bg-cv-moss text-cv-ink font-bold'
-                            : u.rank <= 3
-                            ? 'bg-cv-surface text-cv-text border border-cv-border/40'
-                            : 'text-cv-muted'
-                        }`}>
-                          {u.rank}
+              return (
+                <div
+                  key={u.user_id}
+                  className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                >
+                  {/* User Profile */}
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <Link href={`/profile/${u.user_id}`} className="shrink-0">
+                      {u.avatar_url ? (
+                        <img
+                          src={u.avatar_url}
+                          alt=""
+                          className="w-10 h-10 rounded-full object-cover border border-[#54433b]"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[#785e4b] border border-[#b09681] text-white flex items-center justify-center font-bold text-xs">
+                          {initials}
+                        </div>
+                      )}
+                    </Link>
+
+                    <div className="min-w-0">
+                      <Link 
+                        href={`/profile/${u.user_id}`}
+                        className="text-sm font-bold text-white hover:text-[#dd7058] transition-colors truncate block"
+                      >
+                        {u.display_name}
+                      </Link>
+                      <span className="text-[11px] text-[#a99c91] truncate block">
+                        @{u.username} {u.bio ? `· ${u.bio}` : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stats & Rank */}
+                  <div className="flex items-center gap-8 font-mono text-xs shrink-0">
+                    <div className="w-12 text-right text-[#f4eee6]">
+                      {u.total_reviews}
+                    </div>
+                    <div className="w-16 text-right text-[#ffb08d] font-semibold">
+                      {u.total_likes_received || 0}
+                    </div>
+                    <div className="w-12 text-right">
+                      {isTop ? (
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#dd7058] text-[#1b100e] text-[11px] font-bold">
+                          #1
                         </span>
-                      </td>
-
-                      <td className="p-3.5">
-                        <Link href={`/profile/${u.user_id}`} className="flex items-center gap-3 group">
-                          {u.avatar_url ? (
-                            <img
-                              src={u.avatar_url}
-                              alt={u.display_name}
-                              className="w-8 h-8 rounded-full object-cover border border-cv-border/40"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-cv-surface-2 border border-cv-border/40 flex items-center justify-center font-mono text-[10px] font-bold text-cv-text">
-                              {initials}
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-xs font-bold text-cv-text group-hover:text-cv-moss transition-colors font-sans">
-                              {u.display_name}
-                            </div>
-                            <div className="text-[10px] text-cv-muted">@{u.username}</div>
-                          </div>
-                        </Link>
-                      </td>
-
-                      <td className="p-3.5 text-center font-bold text-cv-text">
-                        {u.total_reviews}
-                      </td>
-
-                      <td className="p-3.5 text-center font-bold text-cv-moss">
-                        {u.total_likes_received}
-                      </td>
-
-                      <td className="p-3.5 text-center text-cv-muted font-bold">
-                        ★ {u.avg_rating_given}
-                      </td>
-
-                      <td className="p-3.5 text-right pr-5">
-                        <Link
-                          href={`/profile/${u.user_id}`}
-                          className="inline-flex items-center gap-1 text-xs text-cv-moss hover:underline"
-                        >
-                          <span>Open</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      ) : (
+                        <span className="text-[#a99c91] text-xs font-semibold">
+                          #{rank}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-
     </div>
   );
 }

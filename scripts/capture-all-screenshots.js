@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const BASE_URL = 'http://localhost:3005';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const SCREENSHOTS_DIR = path.join(__dirname, '..', 'screenshots');
 
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
@@ -11,7 +11,7 @@ if (!fs.existsSync(SCREENSHOTS_DIR)) {
 }
 
 async function run() {
-  console.log('🚀 Starting screenshot capture engine...');
+  console.log(`🚀 Starting screenshot capture engine targeting ${BASE_URL}...`);
   const browser = await puppeteer.launch({
     executablePath: CHROME_PATH,
     headless: true,
@@ -25,6 +25,7 @@ async function run() {
     console.log('📸 Capturing: 09-login-desktop.png');
     await page.setViewport({ width: 1440, height: 900 });
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09-login-desktop.png') });
 
     // 1b. Capture Register Mode
@@ -37,11 +38,12 @@ async function run() {
         break;
       }
     }
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '09-register-desktop.png') });
 
     // 2. Perform 1-click Demo Login as Alex Rivera
     console.log('🔑 Performing demo login as Alex Rivera...');
+    await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
     const demoButtons = await page.$$('button');
     let alexBtn = null;
     for (const b of demoButtons) {
@@ -53,9 +55,8 @@ async function run() {
     }
     if (alexBtn) {
       await alexBtn.click();
-      await page.waitForNavigation({ waitUntil: 'networkidle0' });
+      await new Promise(r => setTimeout(r, 2000));
     } else {
-      // Fallback via API
       await page.evaluate(async () => {
         await fetch('/api/auth/login', {
           method: 'POST',
@@ -63,21 +64,22 @@ async function run() {
           body: JSON.stringify({ email: 'alex@cineverse.io', password: 'password123' })
         });
       });
-      await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
     }
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 1200));
 
     // 3. Capture Discover Home (Desktop 1440x900)
     console.log('📸 Capturing: 01-discover-home-desktop.png');
     await page.setViewport({ width: 1440, height: 900 });
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01-discover-home-desktop.png') });
 
     // 4. Capture Discover Home (Mobile 390x844)
     console.log('📸 Capturing: 01-discover-home-mobile.png');
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01-discover-home-mobile.png') });
 
     // Reset to Desktop Viewport
@@ -86,7 +88,6 @@ async function run() {
     // 5. Capture The Query Lens Drawer Open on Discover
     console.log('📸 Capturing: 10-query-lens-drawer-desktop.png');
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
-    // Click on "Query Lens" or "DBMS INSPECTOR" or drawer toggle button
     const buttons = await page.$$('button');
     for (const b of buttons) {
       const txt = await page.evaluate(el => el.textContent, b);
@@ -95,24 +96,40 @@ async function run() {
         break;
       }
     }
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 800));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-query-lens-drawer-desktop.png') });
 
-    // 6. Capture Movie Details (Inception /movies/1)
+    // 6. Capture CineTrace Novelty Viewer (/trace)
+    console.log('📸 Capturing: 00-cinetrace-provenance-desktop.png');
+    await page.goto(`${BASE_URL}/trace`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 1200));
+    // Click "Save review & capture trace →" to demonstrate live transaction tracing
+    const traceBtns = await page.$$('button');
+    for (const b of traceBtns) {
+      const txt = await page.evaluate(el => el.textContent, b);
+      if (txt.includes('Save review & capture trace')) {
+        await b.click();
+        break;
+      }
+    }
+    await new Promise(r => setTimeout(r, 1500));
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '00-cinetrace-provenance-desktop.png') });
+
+    // 7. Capture Movie Details (Inception /movies/1)
     console.log('📸 Capturing: 02-movie-details-desktop.png');
     await page.goto(`${BASE_URL}/movies/1`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '02-movie-details-desktop.png') });
 
-    // 7. Capture The Projection Room — Query Editor
+    // 8. Capture DB Studio — Query Editor
     console.log('📸 Capturing: 03-projection-room-query-desktop.png');
     await page.goto(`${BASE_URL}/dbms-console`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1000));
-    // Click "Run Query" button to show live result table
+    // Click "Run query"
     const runBtns = await page.$$('button');
     for (const b of runBtns) {
       const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Run Query')) {
+      if (txt.toLowerCase().includes('run query') || txt.toLowerCase().includes('execute')) {
         await b.click();
         break;
       }
@@ -120,22 +137,21 @@ async function run() {
     await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '03-projection-room-query-desktop.png') });
 
-    // 8. Capture The Projection Room — Trigger Lab
+    // 9. Capture DB Studio — Trigger Lab
     console.log('📸 Capturing: 12-projection-room-trigger-desktop.png');
     const triggerTabBtns = await page.$$('button');
     for (const b of triggerTabBtns) {
       const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Trigger lab') || txt.includes('Trigger')) {
+      if (txt.includes('Trigger Lab') || txt.includes('Trigger')) {
         await b.click();
         break;
       }
     }
-    await new Promise(r => setTimeout(r, 600));
-    // Click "Execute Test Trigger Mutation"
+    await new Promise(r => setTimeout(r, 800));
     const execTrgBtns = await page.$$('button');
     for (const b of execTrgBtns) {
       const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Execute Test Trigger')) {
+      if (txt.includes('Execute Test Trigger') || txt.includes('Test Trigger')) {
         await b.click();
         break;
       }
@@ -143,7 +159,7 @@ async function run() {
     await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '12-projection-room-trigger-desktop.png') });
 
-    // 9. Capture The Projection Room — Schema Relationship Map
+    // 10. Capture DB Studio — Schema & Interactive ER Diagram
     console.log('📸 Capturing: 11-projection-room-schema-desktop.png');
     const schemaTabBtns = await page.$$('button');
     for (const b of schemaTabBtns) {
@@ -156,37 +172,37 @@ async function run() {
     await new Promise(r => setTimeout(r, 1000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '11-projection-room-schema-desktop.png') });
 
-    // 10. Capture Activity Feed
+    // 11. Capture Activity Feed
     console.log('📸 Capturing: 04-activity-feed-desktop.png');
     await page.goto(`${BASE_URL}/feed`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '04-activity-feed-desktop.png') });
 
-    // 11. Capture Curated Collections
+    // 12. Capture Curated Collections
     console.log('📸 Capturing: 05-curated-collections-desktop.png');
     await page.goto(`${BASE_URL}/lists`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05-curated-collections-desktop.png') });
 
-    // 12. Capture Single Collection
+    // 13. Capture Single Collection
     console.log('📸 Capturing: 06-single-collection-desktop.png');
     await page.goto(`${BASE_URL}/lists/1`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '06-single-collection-desktop.png') });
 
-    // 13. Capture Community Leaderboard
+    // 14. Capture Community Leaderboard
     console.log('📸 Capturing: 07-community-leaderboard-desktop.png');
     await page.goto(`${BASE_URL}/community`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '07-community-leaderboard-desktop.png') });
 
-    // 14. Capture User Profile (Alex Rivera /profile/1)
+    // 15. Capture User Profile (Alex Rivera /profile/1)
     console.log('📸 Capturing: 08-user-profile-desktop.png');
     await page.goto(`${BASE_URL}/profile/1`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-user-profile-desktop.png') });
 
-    console.log('✨ All 14 screenshots captured successfully in screenshots/!');
+    console.log('✨ All 15 screenshots captured successfully in screenshots/!');
   } finally {
     await browser.close();
   }

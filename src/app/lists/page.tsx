@@ -4,17 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  ListOrdered, 
   Plus, 
-  Heart, 
   Film, 
   X, 
   Check, 
-  Loader2, 
-  LogIn, 
   Search,
-  Sparkles,
-  ArrowUpRight
+  ArrowRight
 } from 'lucide-react';
 import { Watchlist, Movie } from '@/lib/types';
 import { useAuth } from '@/lib/AuthContext';
@@ -98,7 +93,7 @@ export default function ListsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to create list');
+        throw new Error(data.error || 'Failed to assemble list');
       }
 
       setIsCreateModalOpen(false);
@@ -107,35 +102,30 @@ export default function ListsPage() {
       setSelectedMovieIds([]);
       fetchLists();
     } catch (err: any) {
-      setSubmitError(err.message || 'Error creating list');
+      setSubmitError(err.message || 'Error saving collection');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const filteredMovies = allMovies.filter(m => 
-    m.title.toLowerCase().includes(movieSearch.toLowerCase()) ||
-    m.director?.toLowerCase().includes(movieSearch.toLowerCase())
-  );
-
   return (
-    <div className="space-y-6 pb-20">
-      
+    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-2xl bg-cv-shell border border-cv-border/30 shadow-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 shadow-lg">
         <div>
-          <div className="flex items-center gap-1.5 text-cv-muted text-[11px] font-mono uppercase tracking-widest">
-            <ListOrdered className="w-3.5 h-3.5 text-cv-moss" /> The Curation Vault
+          <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#e79178]">
+            CURATED ARCHIVE
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-cv-text mt-1">
-            Curated Collections
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-[-1px] mt-1 m-0">
+            Collections
           </h1>
-          <p className="text-xs text-cv-muted mt-1 max-w-xl">
-            Bespoke film canons and public watchlists assembled through PostgreSQL relational models <code className="text-cv-moss font-mono">watchlists</code> and <code className="text-cv-moss font-mono">watchlist_items</code>.
+          <p className="text-xs text-[#a99c91] mt-1 mb-0 max-w-xl">
+            Thematic film selections and bespoke watchlists assembled by the Cineverse community.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={() => {
             if (!user) {
               router.push('/login');
@@ -143,28 +133,26 @@ export default function ListsPage() {
               setIsCreateModalOpen(true);
             }
           }}
-          className="px-5 py-2.5 rounded-xl bg-cv-moss hover:bg-cv-moss/90 text-cv-ink font-bold text-xs flex items-center gap-2 shadow-sm transition-colors shrink-0 self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-[#eee7dd] hover:bg-white text-[#161310] font-bold text-xs flex items-center gap-2 shadow-sm transition-colors shrink-0 self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Create a list</span>
         </button>
       </div>
 
-      {error && (
-        <ErrorMessage message={error} onRetry={fetchLists} />
-      )}
+      {error && <ErrorMessage message={error} onRetry={fetchLists} />}
 
       {/* Collections Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-80 rounded-2xl bg-cv-shell border border-cv-border/30 animate-pulse" />
+            <div key={i} className="h-72 rounded-2xl bg-[#171615] border border-[#54433b]/30 animate-pulse" />
           ))
         ) : lists.length === 0 ? (
-          <div className="col-span-full p-12 text-center rounded-2xl bg-cv-shell border border-cv-border/30 space-y-3">
-            <Film className="w-10 h-10 text-cv-muted mx-auto" />
-            <h3 className="text-base font-serif font-bold text-cv-text">No collections curated yet</h3>
-            <p className="text-xs text-cv-muted">Be the first to curate a cinematic watchlist for the community.</p>
+          <div className="col-span-full p-12 text-center rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-2">
+            <Film className="w-8 h-8 text-[#a99c91] mx-auto opacity-40" />
+            <h3 className="text-sm font-bold text-white m-0">No collections curated yet</h3>
+            <p className="text-xs text-[#a99c91] m-0">Be the first to curate a cinematic watchlist for the community.</p>
           </div>
         ) : (
           lists.map((list) => {
@@ -179,128 +167,107 @@ export default function ListsPage() {
             return (
               <div
                 key={list.watchlist_id}
-                className="group flex flex-col justify-between rounded-2xl bg-cv-shell border border-cv-border/30 hover:border-cv-border/60 transition-all p-5 shadow-sm overflow-hidden"
+                className="group flex flex-col justify-between rounded-2xl bg-[#171615] border border-[#54433b]/40 hover:border-[#dd7058]/40 transition-all p-5 shadow-sm overflow-hidden"
               >
                 <div>
-                  {/* Layered Fanned Poster Stack */}
-                  <div className="relative h-44 w-full mb-4 rounded-xl bg-cv-surface/60 border border-cv-border/30 flex items-center justify-center overflow-hidden">
+                  {/* Layered Poster Stack */}
+                  <div className="relative h-44 w-full mb-4 rounded-xl bg-black/40 border border-[#54433b]/30 flex items-center justify-center overflow-hidden">
                     {previewMovies.length > 0 ? (
                       <div className="relative w-full h-full flex items-center justify-center">
                         {previewMovies.map((m, idx) => {
-                          // Layered offset transformations
                           const offsets = [
                             'z-30 translate-x-0 scale-100 shadow-xl',
-                            'z-20 -translate-x-12 rotate-[-6deg] scale-90 opacity-80',
-                            'z-10 translate-x-12 rotate-[6deg] scale-90 opacity-80',
+                            'z-20 -translate-x-10 rotate-[-5deg] scale-90 opacity-80',
+                            'z-10 translate-x-10 rotate-[5deg] scale-90 opacity-80',
                           ];
                           return (
                             <img
                               key={m.movie_id}
-                              src={m.poster_url || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=300'}
+                              src={m.poster_url || 'https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEhniE9iAOhHP.jpg'}
                               alt={m.title}
-                              className={`absolute w-24 h-36 rounded-lg object-cover border border-cv-border/50 transition-transform duration-300 group-hover:scale-105 ${offsets[idx] || 'hidden'}`}
+                              className={`absolute w-22 h-34 rounded-lg object-cover border border-white/10 transition-transform duration-300 group-hover:scale-105 ${offsets[idx] || 'hidden'}`}
                             />
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="text-center text-cv-muted/60 text-xs font-mono">
-                        Empty Collection
+                      <div className="text-center text-[#7f7360] text-xs font-mono">
+                        0 films in list
                       </div>
                     )}
                   </div>
 
-                  {/* Badges Row */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cv-surface border border-cv-border/40 text-cv-moss uppercase">
-                      {list.is_public ? 'Public Collection' : 'Private'}
+                  {/* Header & Badges */}
+                  <div className="flex items-center justify-between text-[10px] font-mono text-[#a99c91] mb-1.5">
+                    <span className="uppercase text-[#dd7058] font-bold">
+                      {list.is_public ? 'Public' : 'Private'}
                     </span>
-                    <span className="text-[10px] font-mono text-cv-muted">
-                      {list.movie_count || previewMovies.length} films
-                    </span>
+                    <span>{list.movie_count || previewMovies.length} films</span>
                   </div>
 
-                  {/* Title & Description */}
                   <Link href={`/lists/${list.watchlist_id}`}>
-                    <h2 className="text-lg font-serif font-bold text-cv-text group-hover:text-cv-moss transition-colors line-clamp-1">
+                    <h2 className="text-base font-bold text-white group-hover:text-[#dd7058] transition-colors truncate m-0">
                       {list.name}
                     </h2>
                   </Link>
 
-                  <p className="text-xs text-cv-muted line-clamp-2 mt-1.5 leading-relaxed">
-                    {list.description || 'A hand-selected film collection for private screening.'}
-                  </p>
+                  {list.description && (
+                    <p className="text-xs text-[#a99c91] line-clamp-2 mt-1 leading-relaxed m-0">
+                      {list.description}
+                    </p>
+                  )}
                 </div>
 
-                {/* Footer: Curator & Link */}
-                <div className="pt-4 mt-4 border-t border-cv-border/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {list.owner_avatar_url ? (
-                      <img
-                        src={list.owner_avatar_url}
-                        alt={list.owner_display_name || ''}
-                        className="w-6 h-6 rounded-full object-cover border border-cv-border/40"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-cv-surface text-[10px] font-mono font-bold flex items-center justify-center text-cv-text">
-                        {curatorInitials}
-                      </div>
-                    )}
-                    <span className="text-xs text-cv-muted truncate max-w-[120px]">
-                      {list.owner_display_name || list.owner_username}
+                {/* Curator Line */}
+                <div className="pt-4 border-t border-white/[0.08] mt-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-full bg-[#785e4b] border border-[#b09681] text-white flex items-center justify-center font-bold text-[9px] shrink-0">
+                      {curatorInitials}
+                    </div>
+                    <span className="text-xs text-[#c9c3bc] truncate">
+                      {list.owner_display_name || list.owner_username || 'Curator'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-[11px] font-mono text-cv-muted">
-                      <Heart className="w-3.5 h-3.5 text-cv-vermilion fill-current" />
-                      <span>{list.likes_count || 0}</span>
-                    </div>
-
-                    <Link
-                      href={`/lists/${list.watchlist_id}`}
-                      className="text-xs font-bold text-cv-moss hover:underline flex items-center gap-0.5"
-                    >
-                      <span>Explore</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
+                  <Link
+                    href={`/lists/${list.watchlist_id}`}
+                    className="text-xs text-[#dd7058] hover:underline font-semibold flex items-center gap-1 shrink-0"
+                  >
+                    <span>View list</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
                 </div>
-
               </div>
             );
           })
         )}
       </div>
 
-      {/* CREATE LIST MODAL */}
+      {/* Create List Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-xl rounded-2xl bg-cv-shell border border-cv-border/50 shadow-2xl p-6 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex items-center justify-between pb-3 border-b border-cv-border/30">
-              <div>
-                <h3 className="text-lg font-serif font-bold text-cv-text">Create a Curated List</h3>
-                <p className="text-xs text-cv-muted">Assemble films into a shareable collection.</p>
-              </div>
+          <div className="relative w-full max-w-lg bg-[#1f1c1a] border border-[#54433b] rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+              <h2 className="text-base font-bold text-white m-0">Curate New Collection</h2>
               <button
+                type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1.5 rounded-lg text-cv-muted hover:text-cv-text hover:bg-cv-surface transition-colors"
+                className="p-1 text-[#a99c91] hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {submitError && (
-              <div className="p-3 rounded-xl bg-cv-danger/10 border border-cv-danger/20 text-xs text-cv-danger font-mono">
+              <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/30 text-xs text-red-300">
                 {submitError}
               </div>
             )}
 
-            <form onSubmit={handleCreateList} className="space-y-4">
+            <form onSubmit={handleCreateList} className="space-y-4 overflow-y-auto flex-1 pr-1">
               <div>
-                <label className="block text-xs font-semibold text-cv-text mb-1">
-                  Collection Title *
+                <label className="text-xs font-semibold text-[#a99c91] block mb-1 uppercase tracking-wider">
+                  Collection Title
                 </label>
                 <input
                   type="text"
@@ -308,98 +275,82 @@ export default function ListsPage() {
                   placeholder="e.g. Essential 70s Neo-Noir"
                   value={listName}
                   onChange={(e) => setListName(e.target.value)}
-                  className="w-full bg-cv-surface border border-cv-border/40 rounded-xl px-3.5 py-2 text-xs text-cv-text placeholder-cv-muted/50 focus:outline-none focus:border-cv-moss font-mono"
+                  className="w-full bg-[#151311] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dd7058]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-cv-text mb-1">
-                  Curator&apos;s Notes (Optional)
+                <label className="text-xs font-semibold text-[#a99c91] block mb-1 uppercase tracking-wider">
+                  Description
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="What binds these films together?"
+                  placeholder="A short note explaining the thematic thread..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-cv-surface border border-cv-border/40 rounded-xl p-3 text-xs text-cv-text placeholder-cv-muted/50 focus:outline-none focus:border-cv-moss leading-relaxed"
+                  className="w-full bg-[#151311] border border-[#58463c] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#dd7058] resize-none"
                 />
               </div>
 
-              {/* Film Picker */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-cv-text">
-                    Select Films ({selectedMovieIds.length} selected)
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-[#a99c91] uppercase tracking-wider">
+                    Add Films ({selectedMovieIds.length} selected)
                   </label>
-                  <span className="text-[10px] font-mono text-cv-moss">
-                    Populates watchlist_items
-                  </span>
+                  <span className="text-[10px] text-[#a99c91]">Click posters to add</span>
                 </div>
 
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-cv-muted" />
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#a99c91]" />
                   <input
                     type="text"
-                    placeholder="Search films to include..."
+                    placeholder="Search available catalog..."
                     value={movieSearch}
                     onChange={(e) => setMovieSearch(e.target.value)}
-                    className="w-full bg-cv-surface border border-cv-border/40 rounded-xl pl-8 pr-3 py-1.5 text-xs text-cv-text placeholder-cv-muted/50 focus:outline-none focus:border-cv-moss font-mono"
+                    className="w-full bg-[#151311] border border-[#58463c] rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-[#7f7360] focus:outline-none focus:border-[#dd7058]"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 rounded-xl bg-cv-surface-2 border border-cv-border/30">
-                  {filteredMovies.slice(0, 18).map((movie) => {
-                    const isSelected = selectedMovieIds.includes(movie.movie_id);
-                    return (
-                      <button
-                        key={movie.movie_id}
-                        type="button"
-                        onClick={() => toggleMovieSelection(movie.movie_id)}
-                        className={`p-2 rounded-lg text-left flex items-center gap-2 border transition-all ${
-                          isSelected
-                            ? 'bg-cv-moss/20 border-cv-moss text-cv-text'
-                            : 'bg-cv-surface/60 border-cv-border/30 text-cv-muted hover:text-cv-text hover:bg-cv-surface'
-                        }`}
-                      >
-                        <div className="w-4 h-4 rounded border flex items-center justify-center shrink-0 border-cv-border">
-                          {isSelected && <Check className="w-3 h-3 text-cv-moss" />}
-                        </div>
-                        <span className="text-xs truncate font-mono">{movie.title}</span>
-                      </button>
-                    );
-                  })}
+                <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 bg-black/20 rounded-xl border border-white/5">
+                  {allMovies
+                    .filter(m => m.title.toLowerCase().includes(movieSearch.toLowerCase()))
+                    .slice(0, 16)
+                    .map(m => {
+                      const isSelected = selectedMovieIds.includes(m.movie_id);
+                      return (
+                        <button
+                          key={m.movie_id}
+                          type="button"
+                          onClick={() => toggleMovieSelection(m.movie_id)}
+                          className={`relative aspect-[2/3] rounded-lg overflow-hidden border transition-all ${
+                            isSelected 
+                              ? 'border-[#dd7058] ring-2 ring-[#dd7058]/50' 
+                              : 'border-white/10 opacity-70 hover:opacity-100'
+                          }`}
+                        >
+                          <img src={m.poster_url} alt="" className="w-full h-full object-cover" />
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-[#dd7058]/30 flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white font-bold" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-cv-border/30">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-cv-surface hover:bg-cv-surface-2 text-cv-muted hover:text-cv-text text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !listName.trim()}
-                  className="px-5 py-2 rounded-xl bg-cv-moss hover:bg-cv-moss/90 text-cv-ink font-bold text-xs flex items-center gap-2 transition-colors disabled:opacity-50 shadow-sm"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <span>Create Collection</span>
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting || !listName.trim()}
+                className="w-full py-2.5 rounded-xl bg-[#eee7dd] hover:bg-white text-[#161310] font-bold text-xs transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isSubmitting ? 'Assembling in database...' : 'Publish Collection'}
+              </button>
             </form>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

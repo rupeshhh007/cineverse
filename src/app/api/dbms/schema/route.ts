@@ -116,7 +116,26 @@ export async function GET() {
       }
     ];
 
+    // Detect genuine database engine
+    let engine = {
+      type: Boolean(process.env.DATABASE_URL) ? 'postgres' : 'pglite',
+      label: Boolean(process.env.DATABASE_URL) ? 'POSTGRESQL 16 ENGINE' : 'PGLITE (WASM POSTGRES 16)',
+      rawVersion: 'PostgreSQL 16',
+    };
+    try {
+      const vRes = await query(`SELECT version();`);
+      if (vRes.rows[0]?.version) {
+        engine.rawVersion = vRes.rows[0].version;
+        if (Boolean(process.env.DATABASE_URL)) {
+          engine.label = 'POSTGRESQL 16 ENGINE';
+        } else {
+          engine.label = 'PGLITE (WASM POSTGRES 16)';
+        }
+      }
+    } catch {}
+
     return NextResponse.json({
+      engine,
       tables: tablesMap,
       rowCounts,
       triggers,

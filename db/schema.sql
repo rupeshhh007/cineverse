@@ -591,3 +591,41 @@ LEFT JOIN users tu ON (
     al.activity_type = 'FOLLOW' AND al.target_id = tu.user_id
 )
 ORDER BY al.created_at DESC;
+
+
+-- ----------------------------------------------------------------------------
+-- 7. CINETRACE: Provenance & Mutation Trace Architecture
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS db_action_traces (
+    trace_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    action_type VARCHAR(50) NOT NULL,
+    target_type VARCHAR(50) NOT NULL,
+    target_id INT NOT NULL,
+    mutation_op VARCHAR(20) NOT NULL,
+    initial_score NUMERIC(3, 1),
+    final_score NUMERIC(3, 1),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE TABLE IF NOT EXISTS db_action_trace_steps (
+    step_id SERIAL PRIMARY KEY,
+    trace_id INT NOT NULL REFERENCES db_action_traces(trace_id) ON DELETE CASCADE,
+    step_order INT NOT NULL,
+    step_title VARCHAR(150) NOT NULL,
+    step_type VARCHAR(50) NOT NULL,
+    target_object VARCHAR(100) NOT NULL,
+    operation VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    sql_preview TEXT,
+    before_state JSONB,
+    after_state JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_trace_user_id ON db_action_traces(user_id);
+CREATE INDEX IF NOT EXISTS idx_trace_target ON db_action_traces(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON db_action_trace_steps(trace_id, step_order);
+

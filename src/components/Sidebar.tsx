@@ -5,18 +5,17 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Compass, 
-  Activity, 
+  Clock, 
   Layers, 
   Users, 
   Terminal, 
-  Plus, 
-  Star, 
-  ArrowUpRight, 
   Search, 
   MoreHorizontal,
   LogOut,
   User as UserIcon,
-  Sparkles
+  Sparkles,
+  GitBranch,
+  Bookmark
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -44,27 +43,27 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
   };
 
   const navItemClass = (active: boolean) => `
-    flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all
+    flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all select-none
     ${active 
-      ? 'bg-[#3b4836] text-[#efece3] shadow-sm font-semibold' 
-      : 'text-[#aeb9a8] hover:text-[#efece3] hover:bg-[#253023]/70'
+      ? 'bg-[#655149]/40 text-white border border-[#bca18d]/20 shadow-sm font-semibold' 
+      : 'text-[#c9c3bc] hover:text-[#ffffff] hover:bg-white/[0.04]'
     }
   `;
 
   return (
-    <aside className="w-full h-full flex flex-col justify-between text-[#efece3] select-none">
+    <aside className="w-full h-full flex flex-col justify-between text-[#f4eee6] select-none">
       <div className="space-y-6">
         {/* Brand Header */}
         <div className="flex items-center justify-between px-2 pt-1">
           <Link 
             href="/" 
             onClick={onCloseMobile}
-            className="flex items-center gap-1.5 group"
+            className="flex items-center gap-0.5 group"
           >
-            <span className="text-xl font-black tracking-tighter text-[#efece3] group-hover:text-white transition-colors">
+            <span className="text-2xl font-black tracking-tighter text-[#f4eee6] group-hover:text-white transition-colors">
               CINEVERSE
             </span>
-            <span className="w-2 h-2 rounded-full bg-[#f2685e] inline-block -mt-1.5" />
+            <span className="text-2xl font-black text-[#dd7058]">.</span>
           </Link>
         </div>
 
@@ -73,13 +72,13 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
           <button
             type="button"
             onClick={onOpenSearch}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#161d15] hover:bg-[#222c1f] border border-[#374433] text-left text-xs text-[#8d9b87] hover:text-[#efece3] transition-colors group"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-[#54433b]/40 text-left text-xs text-[#a9a19a] hover:text-[#f4eee6] transition-colors group"
           >
             <div className="flex items-center gap-2.5 truncate">
-              <Search className="w-3.5 h-3.5 text-[#8d9b87] group-hover:text-[#efece3]" />
-              <span className="truncate">Search movies...</span>
+              <Search className="w-3.5 h-3.5 text-[#a9a19a] group-hover:text-[#f4eee6]" />
+              <span className="truncate">Search films, people...</span>
             </div>
-            <kbd className="text-[10px] font-mono text-[#768470] border border-[#374433] rounded px-1.5 py-0.5 group-hover:border-[#52634d] transition-colors shrink-0">
+            <kbd className="text-[10px] font-mono text-[#a9a19a] border border-[#54433b]/60 rounded px-1.5 py-0.5 group-hover:border-[#826b59] transition-colors shrink-0">
               ⌘K
             </kbd>
           </button>
@@ -87,7 +86,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
 
         {/* Nav Section: EXPLORE */}
         <div className="space-y-1">
-          <div className="px-3 text-[10px] font-mono uppercase tracking-widest text-[#768470] font-semibold mb-2">
+          <div className="px-3 text-[10px] font-sans uppercase tracking-[2px] text-[#968f87] font-bold mb-2">
             Explore
           </div>
           <Link
@@ -95,7 +94,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
             onClick={onCloseMobile}
             className={navItemClass(isActive('/'))}
           >
-            <Compass className="w-4 h-4 shrink-0" />
+            <Compass className={`w-4 h-4 shrink-0 ${isActive('/') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
             <span>Discover</span>
           </Link>
 
@@ -104,8 +103,8 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
             onClick={onCloseMobile}
             className={navItemClass(isActive('/feed'))}
           >
-            <Activity className="w-4 h-4 shrink-0" />
-            <span>Activity Feed</span>
+            <Clock className={`w-4 h-4 shrink-0 ${isActive('/feed') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
+            <span>Activity</span>
           </Link>
 
           <Link
@@ -113,7 +112,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
             onClick={onCloseMobile}
             className={navItemClass(isActive('/lists'))}
           >
-            <Layers className="w-4 h-4 shrink-0" />
+            <Layers className={`w-4 h-4 shrink-0 ${isActive('/lists') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
             <span>Collections</span>
           </Link>
 
@@ -122,82 +121,54 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
             onClick={onCloseMobile}
             className={navItemClass(isActive('/community'))}
           >
-            <Users className="w-4 h-4 shrink-0" />
+            <Users className={`w-4 h-4 shrink-0 ${isActive('/community') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
             <span>Community</span>
           </Link>
         </div>
 
-        {/* Nav Section: THE STUDIO */}
+        {/* Nav Section: DATABASE */}
         <div className="space-y-1">
-          <div className="px-3 text-[10px] font-mono uppercase tracking-widest text-[#768470] font-semibold mb-2">
-            The Studio
+          <div className="px-3 text-[10px] font-sans uppercase tracking-[2px] text-[#968f87] font-bold mb-2">
+            Database
           </div>
+          <Link
+            href="/trace"
+            onClick={onCloseMobile}
+            className={navItemClass(isActive('/trace'))}
+          >
+            <GitBranch className={`w-4 h-4 shrink-0 ${isActive('/trace') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
+            <span>CineTrace</span>
+          </Link>
+
           <Link
             href="/dbms-console"
             onClick={onCloseMobile}
             className={navItemClass(isActive('/dbms-console'))}
           >
-            <Terminal className="w-4 h-4 shrink-0 text-[#a9cc92]" />
-            <span>Projection Room</span>
+            <Terminal className={`w-4 h-4 shrink-0 ${isActive('/dbms-console') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
+            <span>DB Studio</span>
           </Link>
-        </div>
-
-        {/* Nav Section: YOUR LIBRARY */}
-        <div className="space-y-1">
-          <div className="px-3 text-[10px] font-mono uppercase tracking-widest text-[#768470] font-semibold mb-2">
-            Your Library
-          </div>
-          <Link
-            href="/lists?create=1"
-            onClick={onCloseMobile}
-            className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs text-[#aeb9a8] hover:text-[#efece3] hover:bg-[#253023]/70 transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5 shrink-0" />
-            <span>Create a list</span>
-          </Link>
-
-          {user && (
-            <>
-              <Link
-                href={`/profile/${user.user_id}#reviews`}
-                onClick={onCloseMobile}
-                className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs text-[#aeb9a8] hover:text-[#efece3] hover:bg-[#253023]/70 transition-colors"
-              >
-                <Star className="w-3.5 h-3.5 shrink-0" />
-                <span>Your reviews</span>
-              </Link>
-
-              <Link
-                href={`/profile/${user.user_id}`}
-                onClick={onCloseMobile}
-                className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs text-[#aeb9a8] hover:text-[#efece3] hover:bg-[#253023]/70 transition-colors"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-                <span>Your profile</span>
-              </Link>
-            </>
-          )}
         </div>
       </div>
 
       {/* User Card at Bottom */}
-      <div className="pt-4 border-t border-[#303c2c]/60 relative">
+      <div className="pt-4 border-t border-white/[0.08] relative">
         {user ? (
-          <div className="flex items-center justify-between p-2 rounded-2xl bg-[#161d15]/80 border border-[#34412f]/50">
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-white/[0.02] border border-[#54433b]/30">
             <Link 
               href={`/profile/${user.user_id}`}
               onClick={onCloseMobile}
               className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90 transition-opacity"
             >
-              <div className="w-8 h-8 rounded-full bg-[#3d4c38] text-[#efece3] border border-[#56654f] flex items-center justify-center font-bold text-xs shrink-0 tracking-wider">
+              <div className="w-8 h-8 rounded-full bg-[#b66a4b] text-white border-2 border-[#826b59] flex items-center justify-center font-bold text-xs shrink-0 tracking-wider">
                 {getInitials(user.display_name)}
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <div className="text-xs font-semibold text-[#efece3] truncate">
+                <div className="text-xs font-semibold text-[#f4eee6] truncate">
                   {user.display_name}
                 </div>
-                <div className="text-[10px] text-[#8e9c88] truncate font-mono">
-                  @{user.username}
+                <div className="text-[11px] text-[#aba39b] truncate">
+                  Your profile →
                 </div>
               </div>
             </Link>
@@ -205,7 +176,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
             <button
               type="button"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-1.5 text-[#8e9c88] hover:text-[#efece3] hover:bg-[#253023] rounded-lg transition-colors ml-1 shrink-0"
+              className="p-1.5 text-[#aba39b] hover:text-[#f4eee6] hover:bg-white/[0.05] rounded-lg transition-colors ml-1 shrink-0"
               aria-label="User menu"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -214,7 +185,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
         ) : (
           <Link
             href="/login"
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#3b4836] hover:bg-[#465541] text-[#efece3] text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#eee7dd] hover:bg-white text-[#161310] text-xs font-bold transition-colors"
           >
             <span>Sign In</span>
           </Link>
@@ -222,13 +193,13 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
 
         {/* Profile Dropdown Menu */}
         {isMenuOpen && user && (
-          <div className="absolute bottom-16 left-0 right-0 p-1.5 rounded-2xl bg-[#1d251b] border border-[#3d4c39] shadow-2xl space-y-1 z-50 animate-fade-in text-xs">
+          <div className="absolute bottom-16 left-0 right-0 p-1.5 rounded-2xl bg-[#211e1b] border border-[#54433b] shadow-2xl space-y-1 z-50 animate-fade-in text-xs">
             <Link
               href={`/profile/${user.user_id}`}
               onClick={() => { setIsMenuOpen(false); onCloseMobile?.(); }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#efece3] hover:bg-[#273324] transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-[#f4eee6] hover:bg-white/[0.05] transition-colors"
             >
-              <UserIcon className="w-3.5 h-3.5 text-[#aeb9a8]" />
+              <UserIcon className="w-3.5 h-3.5 text-[#b9aea4]" />
               <span>View Profile</span>
             </Link>
 
@@ -236,17 +207,16 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
               type="button"
               onClick={async () => {
                 setIsMenuOpen(false);
-                // Quick switch to Sophia
                 const nextEmail = user.email === 'alex@cineverse.io' ? 'sophia@cineverse.io' : 'alex@cineverse.io';
                 await login(nextEmail, 'password123');
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#efece3] hover:bg-[#273324] transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#f4eee6] hover:bg-white/[0.05] transition-colors text-left"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#a9cc92]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#dd7058]" />
               <span>Switch Demo Profile</span>
             </button>
 
-            <div className="h-px bg-[#323f2f] my-1" />
+            <div className="h-px bg-white/[0.08] my-1" />
 
             <button
               type="button"
@@ -254,7 +224,7 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
                 setIsMenuOpen(false);
                 await logout();
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#d56b70] hover:bg-[#2e2324] transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[#e05555] hover:bg-[#e05555]/10 transition-colors text-left"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
