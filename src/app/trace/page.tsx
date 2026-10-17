@@ -57,21 +57,6 @@ export default function CineTracePage() {
         if (traceData.trace) {
           setTrace(traceData.trace);
           setMovieId(String(traceData.trace.target_id));
-        } else {
-          // If no trace recorded yet, capture one for movie 1 so UI renders populated
-          const seedTraceRes = await fetch('/api/dbms/trace', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              movieId: parseInt(initialMovieId, 10),
-              rating: 9.5,
-              reviewText: 'Masterpiece of narrative structure and practical cinematography.',
-            }),
-          });
-          const seedData = await seedTraceRes.json();
-          if (seedData.trace) {
-            setTrace(seedData.trace);
-          }
         }
       } catch (err) {
         console.error('Failed to load trace:', err);

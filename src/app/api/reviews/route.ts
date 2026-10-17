@@ -67,17 +67,16 @@ import { getAuthenticatedUser } from '@/lib/auth';
 export async function POST(request: NextRequest) {
   try {
     const authUser = await getAuthenticatedUser(request);
-    const body = await request.json();
-    const { movieId, rating, reviewText, hasSpoilers, containsSpoilers } = body;
-
-    const effectiveUserId = authUser?.user_id || (body.userId ? parseInt(body.userId, 10) : null);
-
-    if (!effectiveUserId) {
+    if (!authUser) {
       return NextResponse.json(
-        { error: 'Authentication required to rate or review a film' },
+        { error: 'Unauthorized: Authentication required to rate or review a film' },
         { status: 401 }
       );
     }
+
+    const body = await request.json();
+    const { movieId, rating, reviewText, hasSpoilers, containsSpoilers } = body;
+    const effectiveUserId = authUser.user_id;
 
     const parsedMovieId = parseInt(movieId, 10);
     if (isNaN(parsedMovieId)) {

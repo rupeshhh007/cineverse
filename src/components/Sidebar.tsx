@@ -15,7 +15,8 @@ import {
   User as UserIcon,
   Sparkles,
   GitBranch,
-  Bookmark
+  Bookmark,
+  Split
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -147,6 +148,15 @@ export default function Sidebar({ onOpenSearch, onCloseMobile }: SidebarProps) {
           >
             <Terminal className={`w-4 h-4 shrink-0 ${isActive('/dbms-console') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
             <span>DB Studio</span>
+          </Link>
+
+          <Link
+            href="/countercut"
+            onClick={onCloseMobile}
+            className={navItemClass(isActive('/countercut'))}
+          >
+            <Split className={`w-4 h-4 shrink-0 ${isActive('/countercut') ? 'text-[#dd7058]' : 'text-[#b0a8a0]'}`} />
+            <span>Countercut</span>
           </Link>
         </div>
       </div>

@@ -629,3 +629,39 @@ CREATE INDEX IF NOT EXISTS idx_trace_user_id ON db_action_traces(user_id);
 CREATE INDEX IF NOT EXISTS idx_trace_target ON db_action_traces(target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_trace_steps_trace ON db_action_trace_steps(trace_id, step_order);
 
+-- ----------------------------------------------------------------------------
+-- 8. COUNTERCUT: Agentic Film-Taste Investigation Tables
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS agent_cases (
+    case_id VARCHAR(64) PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    mode VARCHAR(32) NOT NULL, -- 'taste_contradiction' | 'opposite_critic'
+    subject_movie_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    opposite_user_id INT REFERENCES users(user_id) ON DELETE SET NULL,
+    headline TEXT NOT NULL,
+    hypothesis TEXT NOT NULL,
+    factual_metrics JSONB NOT NULL DEFAULT '[]'::jsonb,
+    claims JSONB NOT NULL DEFAULT '[]'::jsonb,
+    alternative_explanations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    limitations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    tool_receipts JSONB NOT NULL DEFAULT '[]'::jsonb,
+    proposed_challenge JSONB DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS agent_case_evidence (
+    evidence_id VARCHAR(64) PRIMARY KEY,
+    case_id VARCHAR(64) NOT NULL REFERENCES agent_cases(case_id) ON DELETE CASCADE,
+    source_type VARCHAR(32) NOT NULL, -- 'review' | 'movie' | 'metric'
+    target_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    snippet TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_cases_user ON agent_cases(user_id);
+CREATE INDEX IF NOT EXISTS idx_agent_cases_created ON agent_cases(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_case_evidence_case ON agent_case_evidence(case_id);
+
+

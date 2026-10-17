@@ -12,7 +12,8 @@ import {
   Loader2, 
   BarChart3, 
   Bookmark,
-  GitBranch
+  GitBranch,
+  Split
 } from 'lucide-react';
 import { User, UserAnalytics, Review } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
@@ -189,6 +190,16 @@ export default function UserProfilePage() {
                   <span className="text-[#a99c91] ml-1">Following</span>
                 </div>
               </div>
+
+              {isOwnProfile && (
+                <Link
+                  href="/countercut"
+                  className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm bg-[#dd7058] hover:bg-[#e47d66] text-[#161310]"
+                >
+                  <Split className="w-3.5 h-3.5" />
+                  <span>Explore My Taste in Countercut →</span>
+                </Link>
+              )}
 
               {!isOwnProfile && (
                 <button

@@ -47,11 +47,17 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // In Write Mode, verify user authentication
+      // In Write Mode, verify user authentication strictly
       const authUser = await getAuthenticatedUser(request);
       if (!authUser) {
-        // If unauthenticated, allow only if evaluating locally, but warn
-        // We permit write mode for local dev if session exists
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Write Mode requires an authenticated user session.',
+            detail: 'Unauthenticated requests cannot perform mutating operations on the database.',
+          },
+          { status: 401 }
+        );
       }
     }
 

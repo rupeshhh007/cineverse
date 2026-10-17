@@ -4,7 +4,15 @@ import { NextRequest } from 'next/server';
 import { query } from '@/lib/db';
 
 const SESSION_COOKIE_NAME = 'cineverse_session';
-const SESSION_SECRET = process.env.SESSION_SECRET || 'cineverse-secure-session-secret-key-2026';
+function getSessionSecret(): string {
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'cineverse-secure-session-secret-key-2026') {
+      throw new Error('[Security Exception] SESSION_SECRET must be explicitly configured in production environment.');
+    }
+    return process.env.SESSION_SECRET;
+  }
+  return process.env.SESSION_SECRET || 'cineverse-secure-session-secret-key-2026';
+}
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 export interface AuthenticatedUser {
@@ -51,7 +59,7 @@ export function signSessionToken(payload: { userId: number; username: string }):
   });
   const encodedData = Buffer.from(data).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', SESSION_SECRET)
+    .createHmac('sha256', getSessionSecret())
     .update(encodedData)
     .digest('base64url');
   return `${encodedData}.${signature}`;
@@ -66,7 +74,7 @@ export function verifySessionToken(token: string): { userId: number; username: s
   if (!encodedData || !signature) return null;
 
   const expectedSig = crypto
-    .createHmac('sha256', SESSION_SECRET)
+    .createHmac('sha256', getSessionSecret())
     .update(encodedData)
     .digest('base64url');
 

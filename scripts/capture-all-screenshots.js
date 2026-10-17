@@ -44,27 +44,14 @@ async function run() {
     // 2. Perform 1-click Demo Login as Alex Rivera
     console.log('🔑 Performing demo login as Alex Rivera...');
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0' });
-    const demoButtons = await page.$$('button');
-    let alexBtn = null;
-    for (const b of demoButtons) {
-      const text = await page.evaluate(el => el.textContent, b);
-      if (text.includes('Alex')) {
-        alexBtn = b;
-        break;
-      }
-    }
-    if (alexBtn) {
-      await alexBtn.click();
-      await new Promise(r => setTimeout(r, 2000));
-    } else {
-      await page.evaluate(async () => {
-        await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'alex@cineverse.io', password: 'password123' })
-        });
+    await page.evaluate(async () => {
+      await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'alex@cineverse.io', password: 'password123' })
       });
-    }
+    });
+    await new Promise(r => setTimeout(r, 800));
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1200));
 
@@ -202,7 +189,33 @@ async function run() {
     await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-user-profile-desktop.png') });
 
-    console.log('✨ All 15 screenshots captured successfully in screenshots/!');
+    // 16. Capture Countercut Studio Desktop (/countercut)
+    console.log('📸 Capturing: 13-countercut-studio-desktop.png');
+    await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
+    await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 1500));
+
+    // If there is a "Launch Investigation" button, click it to trigger the live agent investigation
+    const launchBtns = await page.$$('button');
+    for (const b of launchBtns) {
+      const txt = await page.evaluate(el => el.textContent, b);
+      if (txt.includes('Launch Investigation') || txt.includes('Investigate My Taste') || txt.includes('Run Investigation')) {
+        await b.click();
+        console.log('  ⏳ Triggered live Countercut investigation...');
+        await new Promise(r => setTimeout(r, 4500));
+        break;
+      }
+    }
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '13-countercut-studio-desktop.png') });
+
+    // 17. Capture Countercut Studio Mobile (/countercut)
+    console.log('📸 Capturing: 14-countercut-studio-mobile.png');
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 1500));
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '14-countercut-studio-mobile.png') });
+
+    console.log('✨ All 17 screenshots captured successfully in screenshots/!');
   } finally {
     await browser.close();
   }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Play, Star, Plus, ChevronLeft, GitBranch, Film } from 'lucide-react';
+import { Play, Star, Plus, ChevronLeft, GitBranch, Film, Split } from 'lucide-react';
 import { Movie, MovieCastMember, Review } from '@/lib/types';
 import TrailerModal from '@/components/TrailerModal';
 import AddToWatchlistModal from '@/components/AddToWatchlistModal';
@@ -182,6 +182,14 @@ export default function MovieDetailsPage() {
             >
               <GitBranch className="w-3.5 h-3.5 text-[#dd7058]" />
               <span>CineTrace Provenance</span>
+            </Link>
+
+            <Link
+              href={`/countercut?movieId=${movie.movie_id}`}
+              className="px-4 py-2.5 rounded-[9px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/20 text-[#f0c5a3] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <Split className="w-3.5 h-3.5 text-[#dd7058]" />
+              <span>Investigate in Countercut</span>
             </Link>
           </div>
         </div>

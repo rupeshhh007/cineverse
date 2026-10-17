@@ -36,10 +36,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Authentication required to execute a trace mutation' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { movieId, rating, reviewText, hasSpoilers } = body;
-
-    const effectiveUserId = authUser?.user_id || (body.userId ? parseInt(body.userId, 10) : 1); // Default to Alex if evaluating
+    const effectiveUserId = authUser.user_id;
 
     if (!movieId || rating === undefined) {
       return NextResponse.json(
