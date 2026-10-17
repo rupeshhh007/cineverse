@@ -9,6 +9,7 @@ interface ConfirmChallengeModalProps {
   isOpen: boolean;
   onClose: () => void;
   challenge: ProposedChallenge | undefined;
+  caseId?: string;
   onCreated?: (watchlistId: number) => void;
 }
 
@@ -16,6 +17,7 @@ export default function ConfirmChallengeModal({
   isOpen,
   onClose,
   challenge,
+  caseId,
   onCreated,
 }: ConfirmChallengeModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +35,7 @@ export default function ConfirmChallengeModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          caseId,
           title: challenge.name,
           description: challenge.reason,
           movieIds: challenge.movieIds,

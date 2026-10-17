@@ -339,6 +339,38 @@ export const TABLES: TableNode[] = [
     value TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );`
+  },
+  {
+    id: 'db_action_traces',
+    name: 'db_action_traces',
+    x: 84,
+    y: 10,
+    color: '#dd7058',
+    description: 'CineTrace transaction lineage registry capturing authenticated mutation events, trigger executions, and state deltas.',
+    columns: [
+      { name: 'trace_id', type: 'SERIAL', key: 'PK' },
+      { name: 'user_id', type: 'INTEGER', key: 'FK' },
+      { name: 'action_type', type: 'VARCHAR(50)' },
+      { name: 'target_type', type: 'VARCHAR(50)' },
+      { name: 'target_id', type: 'INTEGER' },
+      { name: 'mutation_op', type: 'VARCHAR(20)' },
+      { name: 'initial_score', type: 'NUMERIC(3,1)' },
+      { name: 'final_score', type: 'NUMERIC(3,1)' },
+      { name: 'created_at', type: 'TIMESTAMP' },
+      { name: 'metadata', type: 'JSONB' }
+    ],
+    ddl: `CREATE TABLE db_action_traces (
+    trace_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    action_type VARCHAR(50) NOT NULL,
+    target_type VARCHAR(50) NOT NULL,
+    target_id INT NOT NULL,
+    mutation_op VARCHAR(20) NOT NULL,
+    initial_score NUMERIC(3, 1),
+    final_score NUMERIC(3, 1),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB DEFAULT '{}'::jsonb
+);`
   }
 ];
 
@@ -363,6 +395,7 @@ export const CONNECTIONS: Connection[] = [
   { from: 'watchlist_items', to: 'movies', key: 'movie_id', type: '1:N' },
   { from: 'follows', to: 'users', key: 'follower_id', type: '1:N' },
   { from: 'activity_logs', to: 'users', key: 'user_id', type: '1:N' },
+  { from: 'db_action_traces', to: 'users', key: 'user_id', type: '1:N' },
 ];
 
 export default function InteractiveErDiagram() {

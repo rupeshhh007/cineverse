@@ -47,11 +47,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const mode = body.mode === 'opposite_critic' ? 'opposite_critic' : 'taste_contradiction';
     const targetMovieId = body.targetMovieId ? parseInt(body.targetMovieId, 10) : undefined;
+    const customQuery = typeof body.customQuery === 'string' && body.customQuery.trim().length > 0 
+      ? body.customQuery.trim() 
+      : undefined;
 
     const result = await runCountercutInvestigation({
       userId: authUser.user_id,
       mode,
       targetMovieId,
+      customQuery,
     });
 
     return NextResponse.json({

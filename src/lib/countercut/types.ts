@@ -59,6 +59,7 @@ export type CountercutCase = {
   proposedChallenge?: ProposedChallenge;
   isDeterministicFallback?: boolean;
   fallbackReason?: string;
+  modelName?: string;
   createdAt?: string;
 
   // Rich rendering metadata

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, movieIds } = body;
+    const { caseId, title, description, movieIds } = body;
 
     if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json({ error: 'Watchlist title is required' }, { status: 400 });
@@ -30,7 +30,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid movie IDs are required' }, { status: 400 });
     }
 
-    // Verify all movies exist in the database
+    // 1. If caseId is provided, verify case ownership and that requested movies match the proposed challenge
+    if (caseId) {
+      const caseRes = await query<any>(
+        `SELECT user_id, proposed_challenge FROM agent_cases WHERE case_id = $1`,
+        [caseId]
+      );
+
+      if (caseRes.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Originating Countercut case not found' },
+          { status: 404 }
+        );
+      }
+
+      const caseRow = caseRes.rows[0];
+      if (caseRow.user_id !== authUser.user_id) {
+        return NextResponse.json(
+          { error: 'Forbidden: Originating case does not belong to authenticated user' },
+          { status: 403 }
+        );
+      }
+
+      const proposed =
+        typeof caseRow.proposed_challenge === 'string'
+          ? JSON.parse(caseRow.proposed_challenge)
+          : caseRow.proposed_challenge;
+
+      if (proposed && Array.isArray(proposed.movieIds)) {
+        const proposedSet = new Set(proposed.movieIds.map(Number));
+        const matches = cleanMovieIds.every((id: number) => proposedSet.has(id));
+        if (!matches) {
+          return NextResponse.json(
+            { error: 'Challenge movies do not match the proposed challenge on this case' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // 2. Prevent duplicate list creation (idempotent user action)
+    const existingList = await query<any>(
+      `SELECT watchlist_id FROM watchlists WHERE user_id = $1 AND name = $2 LIMIT 1;`,
+      [authUser.user_id, title.trim()]
+    );
+
+    if (existingList.rows.length > 0) {
+      return NextResponse.json({
+        success: true,
+        watchlistId: existingList.rows[0].watchlist_id,
+        alreadyExisted: true,
+        message: 'Challenge watchlist already exists for this user',
+      });
+    }
+
+    // 3. Verify all movies exist in relational storage
     const checkMovies = await query(
       `SELECT movie_id FROM movies WHERE movie_id = ANY($1::int[]);`,
       [cleanMovieIds]
@@ -43,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Atomically create watchlist and add items using withTransaction
+    // 4. Atomically create watchlist and add items using withTransaction
     const created = await withTransaction(async (tx) => {
       const listRes = await tx.query<{ watchlist_id: number }>(
         `INSERT INTO watchlists (user_id, name, description, is_public)
@@ -52,7 +106,9 @@ export async function POST(request: NextRequest) {
         [
           authUser.user_id,
           title.trim(),
-          description ? description.trim() : 'Curated double-feature challenge from Countercut investigation.',
+          description
+            ? description.trim()
+            : 'Curated double-feature challenge from Countercut investigation.',
         ]
       );
 

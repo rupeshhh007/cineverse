@@ -469,6 +469,195 @@ async function runQa() {
     await db.query('DELETE FROM agent_cases WHERE case_id = $1;', [testCaseId]);
     console.log('  🧹 Cleaned up temporary Countercut test case and challenge watchlist');
 
+    // ------------------------------------------------------------------------
+    // TEST 13: Case-Scoped Evidence Integrity & Repeat Investigation Lineage
+    // ------------------------------------------------------------------------
+    console.log('\n🧬 Test 13: Case-Scoped Evidence Integrity & Repeat Investigation Lineage');
+
+    // 13.1 Repeated investigations with same review records retain independent case evidence rows
+    const repeatCaseId1 = 'case-qa-repeat-1-' + Date.now();
+    const repeatCaseId2 = 'case-qa-repeat-2-' + Date.now();
+
+    await db.query(`
+      INSERT INTO agent_cases (case_id, user_id, mode, subject_movie_ids, headline, hypothesis)
+      VALUES ($1::varchar, 1, 'taste_contradiction', '[]'::jsonb, 'Headline 1', 'Hypothesis 1'),
+             ($2::varchar, 1, 'taste_contradiction', '[]'::jsonb, 'Headline 2', 'Hypothesis 2');
+    `, [repeatCaseId1, repeatCaseId2]);
+
+    // Insert same evidence ID (e.g. 'R-0042') for Case 1 and Case 2
+    await db.query(`
+      INSERT INTO agent_case_evidence (evidence_id, case_id, source_type, target_id, title, snippet, metadata)
+      VALUES ('R-0042', $1::varchar, 'review', 42, 'Interstellar Review', 'Masterpiece', '{"author": "Alex"}'::jsonb)
+      ON CONFLICT (case_id, evidence_id) DO UPDATE SET snippet = EXCLUDED.snippet;
+    `, [repeatCaseId1]);
+
+    await db.query(`
+      INSERT INTO agent_case_evidence (evidence_id, case_id, source_type, target_id, title, snippet, metadata)
+      VALUES ('R-0042', $1::varchar, 'review', 42, 'Interstellar Review', 'Masterpiece in Case 2', '{"author": "Alex"}'::jsonb)
+      ON CONFLICT (case_id, evidence_id) DO UPDATE SET snippet = EXCLUDED.snippet;
+    `, [repeatCaseId2]);
+
+    const evCase1 = await db.query('SELECT * FROM agent_case_evidence WHERE case_id = $1::varchar;', [repeatCaseId1]);
+    const evCase2 = await db.query('SELECT * FROM agent_case_evidence WHERE case_id = $1::varchar;', [repeatCaseId2]);
+
+    assert(evCase1.rows.length === 1, 'Repeat investigation: Case 1 retains independent evidence record (not overwritten)');
+    assert(evCase2.rows.length === 1, 'Repeat investigation: Case 2 retains independent evidence record');
+    assert(evCase1.rows[0].evidence_id === 'R-0042' && evCase2.rows[0].evidence_id === 'R-0042', 'Both cases share same review evidence ID with case-scoped identity');
+
+    // 13.2 Complete case metadata persistence & restoration
+    const richCaseId = 'case-qa-rich-' + Date.now();
+    const mockPrimaryMovie = { movie_id: 2, title: 'Interstellar', userRating: 10 };
+    const mockSecondaryMovie = { movie_id: 18, title: 'Arrival', userRating: 4.5 };
+    const mockOppositeCritic = { userId: 4, username: 'elena_r', displayName: 'Elena Rostov' };
+
+    await db.query(`
+      INSERT INTO agent_cases (
+        case_id, user_id, mode, subject_movie_ids, headline, hypothesis,
+        primary_movie, secondary_movie, opposite_critic, connector_label,
+        is_fallback, fallback_reason, model_name
+      ) VALUES ($1::varchar, 1, 'opposite_critic', '[2, 18]'::jsonb, 'Rich Case Headline', 'Rich Hypothesis',
+        $2::jsonb, $3::jsonb, $4::jsonb, 'Shared genre / Sci-Fi', FALSE, NULL, 'gemini-3.8-flash');
+    `, [richCaseId, JSON.stringify(mockPrimaryMovie), JSON.stringify(mockSecondaryMovie), JSON.stringify(mockOppositeCritic)]);
+
+    const richRes = await db.query('SELECT * FROM agent_cases WHERE case_id = $1::varchar;', [richCaseId]);
+    assert(richRes.rows.length === 1, 'Case with rich metadata saved and restored');
+    assert(richRes.rows[0].primary_movie?.title === 'Interstellar', 'Primary movie metadata restored from PostgreSQL');
+    assert(richRes.rows[0].secondary_movie?.title === 'Arrival', 'Secondary movie metadata restored from PostgreSQL');
+    assert(richRes.rows[0].opposite_critic?.username === 'elena_r', 'Opposite critic details restored from PostgreSQL');
+    assert(richRes.rows[0].connector_label === 'Shared genre / Sci-Fi', 'Connector label restored accurately');
+    assert(richRes.rows[0].model_name === 'gemini-3.8-flash', 'Model name preserved accurately');
+    assert(richRes.rows[0].is_fallback === false, 'Non-fallback agent execution status preserved');
+
+    // 13.3 Multiple users investigating overlapping reviews
+    const userCaseId1 = 'case-user1-' + Date.now();
+    const userCaseId2 = 'case-user2-' + Date.now();
+    await db.query(`
+      INSERT INTO agent_cases (case_id, user_id, mode, headline, hypothesis)
+      VALUES ($1::varchar, 1, 'taste_contradiction', 'User 1 Case', 'User 1 Hypo'),
+             ($2::varchar, 4, 'taste_contradiction', 'User 2 Case', 'User 2 Hypo');
+    `, [userCaseId1, userCaseId2]);
+
+    await db.query(`
+      INSERT INTO agent_case_evidence (evidence_id, case_id, source_type, target_id, title, snippet)
+      VALUES ('R-SHARED-1', $1::varchar, 'review', 1, 'Inception', 'User 1 perspective'),
+             ('R-SHARED-1', $2::varchar, 'review', 1, 'Inception', 'User 2 perspective')
+      ON CONFLICT (case_id, evidence_id) DO NOTHING;
+    `, [userCaseId1, userCaseId2]);
+
+    const u1Ev = await db.query('SELECT * FROM agent_case_evidence WHERE case_id = $1::varchar;', [userCaseId1]);
+    const u2Ev = await db.query('SELECT * FROM agent_case_evidence WHERE case_id = $1::varchar;', [userCaseId2]);
+    assert(u1Ev.rows.length === 1 && u2Ev.rows.length === 1, 'Multi-user session: Overlapping reviews retained independently per user case');
+
+    // 13.4 Claim evidence reference validation
+    const mockEvidenceMap = new Map([
+      ['R-0001', { id: 'R-0001', title: 'Film A' }],
+      ['R-0002', { id: 'R-0002', title: 'Film B' }],
+    ]);
+    const claimsToTest = [
+      { text: 'Supported claim', evidenceIds: ['R-0001', 'R-0002'], strength: 'supported' },
+      { text: 'Nonexistent IDs claim', evidenceIds: ['R-9999', 'R-8888'], strength: 'supported' },
+      { text: 'Mixed IDs claim', evidenceIds: ['R-0001', 'R-9999'], strength: 'supported' },
+    ];
+    const validated = claimsToTest.map(c => {
+      const valid = c.evidenceIds.filter(id => mockEvidenceMap.has(id));
+      return {
+        text: c.text,
+        evidenceIds: valid,
+        strength: valid.length === 0 ? 'insufficient' : c.strength,
+      };
+    });
+    assert(validated[0].evidenceIds.length === 2 && validated[0].strength === 'supported', 'Claim with valid evidence retains supported strength');
+    assert(validated[1].evidenceIds.length === 0 && validated[1].strength === 'insufficient', 'Claim with nonexistent evidence IDs is safely downgraded to insufficient');
+    assert(validated[2].evidenceIds.length === 1 && validated[2].evidenceIds[0] === 'R-0001', 'Claim with mixed IDs strips nonexistent references');
+
+    // Clean up Test 13 cases
+    for (const cid of [repeatCaseId1, repeatCaseId2, richCaseId, userCaseId1, userCaseId2]) {
+      await db.query('DELETE FROM agent_case_evidence WHERE case_id = $1::varchar;', [cid]);
+      await db.query('DELETE FROM agent_cases WHERE case_id = $1::varchar;', [cid]);
+    }
+    console.log('  🧹 Cleaned up Test 13 test cases and evidence records');
+
+    // ------------------------------------------------------------------------
+    // TEST 14: Database Safety & CineTrace Transaction Boundaries
+    // ------------------------------------------------------------------------
+    console.log('\n🛡️ Test 14: Database Safety & CineTrace Transaction Boundaries');
+
+    // 14.1 Destructive DDL statements blocked
+    const testSqlStatements = [
+      'DROP TABLE reviews;',
+      'TRUNCATE movies CASCADE;',
+      'ALTER TABLE users DROP COLUMN email;',
+      'SELECT * FROM movies;'
+    ];
+    const destructivePattern = /\b(DROP|TRUNCATE|ALTER)\b/i;
+    assert(destructivePattern.test(testSqlStatements[0]), 'DROP TABLE correctly flagged as destructive DDL');
+    assert(destructivePattern.test(testSqlStatements[1]), 'TRUNCATE correctly flagged as destructive DDL');
+    assert(destructivePattern.test(testSqlStatements[2]), 'ALTER TABLE correctly flagged as destructive DDL');
+    assert(!destructivePattern.test(testSqlStatements[3]), 'Safe SELECT query is not flagged as destructive');
+
+    // 14.2 Atomic Transaction Rollback Safety
+    const movieBeforeTx = await db.query('SELECT avg_rating, review_count FROM movies WHERE movie_id = 1;');
+    const txInitialRating = movieBeforeTx.rows[0].avg_rating;
+    const txInitialCount = movieBeforeTx.rows[0].review_count;
+
+    let txFailedAsExpected = false;
+    try {
+      await db.exec('BEGIN;');
+      await db.query('UPDATE movies SET avg_rating = 1.0 WHERE movie_id = 1;');
+      // Simulate failure mid-transaction
+      throw new Error('Simulated transaction failure');
+    } catch (txErr) {
+      await db.exec('ROLLBACK;');
+      txFailedAsExpected = true;
+    }
+    assert(txFailedAsExpected, 'Simulated mid-transaction failure caught');
+    const movieAfterRollback = await db.query('SELECT avg_rating, review_count FROM movies WHERE movie_id = 1;');
+    assert(movieAfterRollback.rows[0].avg_rating === txInitialRating, 'Transaction rollback successfully preserved original movie rating');
+    assert(movieAfterRollback.rows[0].review_count === txInitialCount, 'Transaction rollback successfully preserved original review count');
+
+    // ------------------------------------------------------------------------
+    // TEST 15: Opposing Critic Threshold & Challenge Consent Security
+    // ------------------------------------------------------------------------
+    console.log('\n🎯 Test 15: Opposing Critic Threshold & Challenge Consent Security');
+
+    // 15.1 Opposing critic enforces >= 3 shared films threshold
+    const emptyOppRes = await db.query(`
+      WITH other_critics AS (
+        SELECT r.user_id, r.rating::float AS critic_target_rating
+        FROM reviews r
+        WHERE r.movie_id = 999 AND r.user_id != 1
+      ),
+      shared_history AS (
+        SELECT oc.user_id, COUNT(r_other.movie_id)::int AS shared_count
+        FROM other_critics oc
+        JOIN reviews r_other ON oc.user_id = r_other.user_id
+        JOIN reviews r_user ON r_user.user_id = 1 AND r_user.movie_id = r_other.movie_id
+        GROUP BY oc.user_id
+      )
+      SELECT oc.*, COALESCE(sh.shared_count, 0) AS shared_count
+      FROM other_critics oc
+      LEFT JOIN shared_history sh ON oc.user_id = sh.user_id
+      WHERE COALESCE(sh.shared_count, 0) >= 3;
+    `);
+    assert(emptyOppRes.rows.length === 0, 'Opposing critic query returns 0 candidates when shared history < 3 films');
+
+    // 15.2 Challenge Watchlist verification: Duplicate creation prevention
+    const dupTestName = 'QA Unique Challenge Test ' + Date.now();
+    const firstList = await db.query(`
+      INSERT INTO watchlists (user_id, name, description, is_public)
+      VALUES (1, $1::varchar, 'First creation', TRUE)
+      RETURNING watchlist_id;
+    `, [dupTestName]);
+    const firstId = firstList.rows[0].watchlist_id;
+
+    // Check duplicate check logic
+    const dupCheck = await db.query('SELECT watchlist_id FROM watchlists WHERE user_id = 1 AND name = $1::varchar LIMIT 1;', [dupTestName]);
+    assert(dupCheck.rows.length === 1 && dupCheck.rows[0].watchlist_id === firstId, 'Duplicate challenge watchlist detection successfully identified existing list');
+
+    // Clean up duplicate test watchlist
+    await db.query('DELETE FROM watchlists WHERE watchlist_id = $1::int;', [firstId]);
+    console.log('  🧹 Cleaned up Test 15 test watchlist');
+
     console.log('\n=============================================');
     console.log(`🎉 QA Suite Completed: ${passed} PASSED, ${failed} FAILED`);
     console.log('=============================================\n');

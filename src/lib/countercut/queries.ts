@@ -230,6 +230,10 @@ export async function findOpposingCritics(
   }
 
   const best = candidatesRes.rows[0];
+  // Enforce minimum threshold of >= 3 shared films and meaningful divergence (>= 3.0 points)
+  if (!best.shared_count || Number(best.shared_count) < 3 || !best.target_divergence || Number(best.target_divergence) < 3.0) {
+    return null;
+  }
 
   // Fetch the shared movies and both ratings
   const sharedMoviesSql = `

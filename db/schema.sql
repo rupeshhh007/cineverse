@@ -646,18 +646,26 @@ CREATE TABLE IF NOT EXISTS agent_cases (
     limitations JSONB NOT NULL DEFAULT '[]'::jsonb,
     tool_receipts JSONB NOT NULL DEFAULT '[]'::jsonb,
     proposed_challenge JSONB DEFAULT NULL,
+    primary_movie JSONB DEFAULT NULL,
+    secondary_movie JSONB DEFAULT NULL,
+    opposite_critic JSONB DEFAULT NULL,
+    connector_label TEXT DEFAULT NULL,
+    is_fallback BOOLEAN DEFAULT FALSE,
+    fallback_reason TEXT DEFAULT NULL,
+    model_name VARCHAR(64) DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS agent_case_evidence (
-    evidence_id VARCHAR(64) PRIMARY KEY,
+    evidence_id VARCHAR(64) NOT NULL,
     case_id VARCHAR(64) NOT NULL REFERENCES agent_cases(case_id) ON DELETE CASCADE,
     source_type VARCHAR(32) NOT NULL, -- 'review' | 'movie' | 'metric'
     target_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     snippet TEXT,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (case_id, evidence_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_cases_user ON agent_cases(user_id);

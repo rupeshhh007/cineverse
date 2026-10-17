@@ -189,33 +189,70 @@ async function run() {
     await new Promise(r => setTimeout(r, 1200));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '08-user-profile-desktop.png') });
 
-    // 16. Capture Countercut Studio Desktop (/countercut)
+    // 16. Capture Countercut Studio Desktop (/countercut) - Taste Contradiction Mode
     console.log('📸 Capturing: 13-countercut-studio-desktop.png');
     await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000));
 
-    // If there is a "Launch Investigation" button, click it to trigger the live agent investigation
-    const launchBtns = await page.$$('button');
-    for (const b of launchBtns) {
+    // Ensure taste_contradiction investigation is loaded
+    const tasteBtns = await page.$$('button');
+    for (const b of tasteBtns) {
       const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Launch Investigation') || txt.includes('Investigate My Taste') || txt.includes('Run Investigation')) {
+      if (txt.includes('Investigate My Taste')) {
         await b.click();
-        console.log('  ⏳ Triggered live Countercut investigation...');
-        await new Promise(r => setTimeout(r, 4500));
+        console.log('  ⏳ Triggered taste contradiction investigation...');
+        await new Promise(r => setTimeout(r, 4000));
         break;
       }
     }
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '13-countercut-studio-desktop.png') });
 
-    // 17. Capture Countercut Studio Mobile (/countercut)
+    // 17. Capture Countercut Studio Desktop - Opposing Critic Mode (Oppenheimer vs Elena Rostov)
+    console.log('📸 Capturing: 15-countercut-opposing-desktop.png');
+    await page.goto(`${BASE_URL}/countercut?movieId=5`, { waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 4500));
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '15-countercut-opposing-desktop.png') });
+
+    // 18. Capture Countercut Challenge Consent Modal
+    console.log('📸 Capturing: 16-countercut-challenge-confirm.png');
+    const openedModal = await page.evaluate(() => {
+      const btns = Array.from(document.querySelectorAll('button'));
+      const btn = btns.find(b => b.textContent && b.textContent.includes('Build a two-film challenge'));
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+    if (openedModal) {
+      console.log('  ⏳ Opened Challenge consent modal...');
+      await new Promise(r => setTimeout(r, 1200));
+    } else {
+      console.warn('  ⚠️ Challenge button not found directly, checking taste contradiction case...');
+      await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
+      await new Promise(r => setTimeout(r, 2000));
+      await page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const btn = btns.find(b => b.textContent && b.textContent.includes('Build a two-film challenge'));
+        if (btn) btn.click();
+      });
+      await new Promise(r => setTimeout(r, 1200));
+    }
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '16-countercut-challenge-confirm.png') });
+
+    // Close modal if open (press Escape or click outside)
+    await page.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 500));
+
+    // 19. Capture Countercut Studio Mobile (/countercut)
     console.log('📸 Capturing: 14-countercut-studio-mobile.png');
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 2000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '14-countercut-studio-mobile.png') });
 
-    console.log('✨ All 17 screenshots captured successfully in screenshots/!');
+    console.log('✨ All screenshots captured successfully in screenshots/!');
   } finally {
     await browser.close();
   }

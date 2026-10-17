@@ -2,7 +2,7 @@ import { query } from '@/lib/db';
 import { CountercutCase, EvidenceRecord } from './types';
 
 /**
- * Ensures Countercut tables exist idempotently
+ * Ensures Countercut tables exist and applies non-destructive schema migrations
  */
 export async function ensureCountercutTables(): Promise<void> {
   await query(`
@@ -20,22 +20,57 @@ export async function ensureCountercutTables(): Promise<void> {
       limitations JSONB NOT NULL DEFAULT '[]'::jsonb,
       tool_receipts JSONB NOT NULL DEFAULT '[]'::jsonb,
       proposed_challenge JSONB DEFAULT NULL,
+      primary_movie JSONB DEFAULT NULL,
+      secondary_movie JSONB DEFAULT NULL,
+      opposite_critic JSONB DEFAULT NULL,
+      connector_label TEXT DEFAULT NULL,
+      is_fallback BOOLEAN DEFAULT FALSE,
+      fallback_reason TEXT DEFAULT NULL,
+      model_name VARCHAR(64) DEFAULT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
+  // Ensure new metadata columns exist idempotently on agent_cases
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS primary_movie JSONB DEFAULT NULL;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS secondary_movie JSONB DEFAULT NULL;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS opposite_critic JSONB DEFAULT NULL;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS connector_label TEXT DEFAULT NULL;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS is_fallback BOOLEAN DEFAULT FALSE;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS fallback_reason TEXT DEFAULT NULL;`);
+  await query(`ALTER TABLE agent_cases ADD COLUMN IF NOT EXISTS model_name VARCHAR(64) DEFAULT NULL;`);
+
   await query(`
     CREATE TABLE IF NOT EXISTS agent_case_evidence (
-      evidence_id VARCHAR(64) PRIMARY KEY,
+      evidence_id VARCHAR(64) NOT NULL,
       case_id VARCHAR(64) NOT NULL REFERENCES agent_cases(case_id) ON DELETE CASCADE,
       source_type VARCHAR(32) NOT NULL,
       target_id INT NOT NULL,
       title VARCHAR(255) NOT NULL,
       snippet TEXT,
       metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (case_id, evidence_id)
     );
   `);
+
+  // Non-destructive migration: convert single PK (evidence_id) to composite PK (case_id, evidence_id)
+  try {
+    const pkCheck = await query<any>(`
+      SELECT kcu.column_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu 
+        ON tc.constraint_name = kcu.constraint_name
+      WHERE tc.table_name = 'agent_case_evidence' AND tc.constraint_type = 'PRIMARY KEY';
+    `);
+    const pkCols = pkCheck.rows.map((r: any) => r.column_name);
+    if (pkCols.length === 1 && pkCols[0] === 'evidence_id') {
+      await query(`ALTER TABLE agent_case_evidence DROP CONSTRAINT agent_case_evidence_pkey;`);
+      await query(`ALTER TABLE agent_case_evidence ADD PRIMARY KEY (case_id, evidence_id);`);
+    }
+  } catch (migErr) {
+    // Migration check non-critical if table was just created with composite PK
+  }
 
   await query(`CREATE INDEX IF NOT EXISTS idx_agent_cases_user ON agent_cases(user_id);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_agent_cases_created ON agent_cases(created_at DESC);`);
@@ -56,8 +91,10 @@ export async function saveCountercutCase(
       case_id, user_id, mode, subject_movie_ids, opposite_user_id,
       headline, hypothesis, factual_metrics, claims,
       alternative_explanations, limitations, tool_receipts,
-      proposed_challenge, created_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+      proposed_challenge, primary_movie, secondary_movie,
+      opposite_critic, connector_label, is_fallback,
+      fallback_reason, model_name, created_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, CURRENT_TIMESTAMP)
     ON CONFLICT (case_id) DO UPDATE SET
       headline = EXCLUDED.headline,
       hypothesis = EXCLUDED.hypothesis,
@@ -66,7 +103,14 @@ export async function saveCountercutCase(
       alternative_explanations = EXCLUDED.alternative_explanations,
       limitations = EXCLUDED.limitations,
       tool_receipts = EXCLUDED.tool_receipts,
-      proposed_challenge = EXCLUDED.proposed_challenge
+      proposed_challenge = EXCLUDED.proposed_challenge,
+      primary_movie = EXCLUDED.primary_movie,
+      secondary_movie = EXCLUDED.secondary_movie,
+      opposite_critic = EXCLUDED.opposite_critic,
+      connector_label = EXCLUDED.connector_label,
+      is_fallback = EXCLUDED.is_fallback,
+      fallback_reason = EXCLUDED.fallback_reason,
+      model_name = EXCLUDED.model_name
     RETURNING *;
   `;
 
@@ -84,16 +128,32 @@ export async function saveCountercutCase(
     JSON.stringify(caseData.limitations || []),
     JSON.stringify(caseData.toolReceipts || []),
     caseData.proposedChallenge ? JSON.stringify(caseData.proposedChallenge) : null,
+    caseData.primaryMovie ? JSON.stringify(caseData.primaryMovie) : null,
+    caseData.secondaryMovie ? JSON.stringify(caseData.secondaryMovie) : null,
+    caseData.oppositeCritic ? JSON.stringify(caseData.oppositeCritic) : null,
+    caseData.connectorLabel || null,
+    Boolean(caseData.isDeterministicFallback),
+    caseData.fallbackReason || null,
+    caseData.modelName || null,
   ]);
 
-  // Insert evidence items
+  // Insert case-scoped evidence items
   if (caseData.evidence && caseData.evidence.length > 0) {
     for (const ev of caseData.evidence) {
+      const mergedMeta = {
+        ...(ev.metadata || {}),
+        author: ev.author,
+        rating: ev.rating,
+        isSpoiler: ev.isSpoiler,
+      };
+
       await query(
         `INSERT INTO agent_case_evidence (
           evidence_id, case_id, source_type, target_id, title, snippet, metadata
         ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (evidence_id) DO UPDATE SET
+        ON CONFLICT (case_id, evidence_id) DO UPDATE SET
+          source_type = EXCLUDED.source_type,
+          target_id = EXCLUDED.target_id,
           title = EXCLUDED.title,
           snippet = EXCLUDED.snippet,
           metadata = EXCLUDED.metadata;`,
@@ -104,7 +164,7 @@ export async function saveCountercutCase(
           ev.targetId,
           ev.title,
           ev.snippet,
-          JSON.stringify(ev.metadata || {}),
+          JSON.stringify(mergedMeta),
         ]
       );
     }
@@ -139,14 +199,20 @@ export async function getCountercutCaseById(
     [caseId]
   );
 
-  const evidence: EvidenceRecord[] = evRes.rows.map((e: any) => ({
-    id: e.evidence_id,
-    sourceType: e.source_type,
-    targetId: e.target_id,
-    title: e.title,
-    snippet: e.snippet,
-    metadata: typeof e.metadata === 'string' ? JSON.parse(e.metadata) : e.metadata,
-  }));
+  const evidence: EvidenceRecord[] = evRes.rows.map((e: any) => {
+    const meta = typeof e.metadata === 'string' ? JSON.parse(e.metadata) : (e.metadata || {});
+    return {
+      id: e.evidence_id,
+      sourceType: e.source_type,
+      targetId: e.target_id,
+      title: e.title,
+      snippet: e.snippet,
+      author: meta.author,
+      rating: meta.rating !== undefined ? Number(meta.rating) : undefined,
+      isSpoiler: Boolean(meta.isSpoiler),
+      metadata: meta,
+    };
+  });
 
   return {
     id: row.case_id,
@@ -160,6 +226,13 @@ export async function getCountercutCaseById(
     limitations: typeof row.limitations === 'string' ? JSON.parse(row.limitations) : row.limitations,
     toolReceipts: typeof row.tool_receipts === 'string' ? JSON.parse(row.tool_receipts) : row.tool_receipts,
     proposedChallenge: row.proposed_challenge ? (typeof row.proposed_challenge === 'string' ? JSON.parse(row.proposed_challenge) : row.proposed_challenge) : undefined,
+    primaryMovie: row.primary_movie ? (typeof row.primary_movie === 'string' ? JSON.parse(row.primary_movie) : row.primary_movie) : undefined,
+    secondaryMovie: row.secondary_movie ? (typeof row.secondary_movie === 'string' ? JSON.parse(row.secondary_movie) : row.secondary_movie) : undefined,
+    oppositeCritic: row.opposite_critic ? (typeof row.opposite_critic === 'string' ? JSON.parse(row.opposite_critic) : row.opposite_critic) : undefined,
+    connectorLabel: row.connector_label || undefined,
+    isDeterministicFallback: row.is_fallback !== undefined ? Boolean(row.is_fallback) : false,
+    fallbackReason: row.fallback_reason || undefined,
+    modelName: row.model_name || undefined,
     evidence,
     createdAt: row.created_at,
   };

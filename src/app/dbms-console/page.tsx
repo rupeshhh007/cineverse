@@ -206,7 +206,7 @@ export default function DbmsConsolePage() {
   const tablesList = schemaData?.tables ? Object.keys(schemaData.tables) : [
     'movies', 'reviews', 'users', 'movie_genres', 'genres', 
     'watchlists', 'watchlist_items', 'activity_logs', 'review_likes', 
-    'follows', 'people', 'movie_cast'
+    'follows', 'people', 'movie_cast', 'app_meta', 'db_action_traces'
   ];
 
   const filteredTables = tablesList.filter(t => 
@@ -540,18 +540,28 @@ export default function DbmsConsolePage() {
               </div>
 
               {/* Poster Snapshot */}
-              <div className="h-[140px] rounded-xl overflow-hidden relative border border-[#664839] p-3.5 flex flex-col justify-end shadow-md group">
+              <div className="h-[140px] rounded-xl overflow-hidden relative border border-[#664839] p-3.5 flex flex-col justify-end shadow-md group bg-[#1c1815]">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent z-[1]" />
                 <img
                   src="https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEhniE9iAOhHP.jpg"
                   alt="Inception"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.opacity = '0';
+                  }}
                   className="absolute inset-0 w-full h-full object-cover filter brightness-[0.6] group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="relative z-10">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <TableIcon className="w-3.5 h-3.5 text-[#dd7058]" />
+                    <span className="text-[10px] font-mono text-[#dd7058] uppercase font-bold tracking-wider">
+                      LIVE RECORD #1
+                    </span>
+                  </div>
                   <strong className="text-base font-bold text-white block leading-tight">
-                    Inception
+                    Inception (2010)
                   </strong>
                   <small className="text-[10px] text-[#eabfa2] block mt-0.5">
-                    ★ Community reviews · ranked films
+                    ★ 9.8 community rating · ranked #1 in Sci-Fi
                   </small>
                 </div>
               </div>

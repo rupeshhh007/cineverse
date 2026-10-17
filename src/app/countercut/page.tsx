@@ -49,11 +49,63 @@ export default function CountercutPage() {
     { id: '9', title: 'The Matrix (1999)' },
   ];
 
-  // Load latest or initial case on mount
+  // Trigger an investigation
+  const triggerInvestigation = async (
+    targetMode: 'taste_contradiction' | 'opposite_critic',
+    targetMovieIdStr?: string,
+    queryStr?: string
+  ) => {
+    setIsInvestigating(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/countercut/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: targetMode,
+          targetMovieId: targetMovieIdStr ? parseInt(targetMovieIdStr, 10) : undefined,
+          customQuery: queryStr ? queryStr.trim() : undefined,
+        }),
+      });
+
+      if (res.status === 401) {
+        setError('Please sign in to run Countercut investigations.');
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Investigation failed');
+      }
+
+      if (data.case) {
+        setActiveCase(data.case);
+        setMode(data.case.mode);
+      }
+    } catch (err: any) {
+      console.error('Investigation error:', err);
+      setError(err.message);
+    } finally {
+      setIsInvestigating(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Load latest or deep-linked case on mount
   useEffect(() => {
-    const fetchLatestCase = async () => {
+    const fetchInitialData = async () => {
       setIsLoading(true);
       setError(null);
+
+      // Deep link support: If a target movie was provided in URL query, run opposite_critic investigation for that movie
+      if (initialMovieId) {
+        setMode('opposite_critic');
+        setSelectedMovieId(initialMovieId);
+        await triggerInvestigation('opposite_critic', initialMovieId);
+        return;
+      }
+
       try {
         const res = await fetch('/api/countercut/cases');
         if (res.status === 401) {
@@ -77,48 +129,8 @@ export default function CountercutPage() {
       }
     };
 
-    fetchLatestCase();
-  }, []);
-
-  // Trigger a new investigation
-  const triggerInvestigation = async (
-    targetMode: 'taste_contradiction' | 'opposite_critic',
-    targetMovieIdStr?: string
-  ) => {
-    setIsInvestigating(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/countercut/cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: targetMode,
-          targetMovieId: targetMovieIdStr ? parseInt(targetMovieIdStr, 10) : undefined,
-        }),
-      });
-
-      if (res.status === 401) {
-        setError('Please sign in to run Countercut investigations.');
-        return;
-      }
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Investigation failed');
-      }
-
-      if (data.case) {
-        setActiveCase(data.case);
-        setMode(data.case.mode);
-      }
-    } catch (err: any) {
-      console.error('Investigation error:', err);
-      setError(err.message);
-    } finally {
-      setIsInvestigating(false);
-    }
-  };
+    fetchInitialData();
+  }, [initialMovieId]);
 
   const handleModeChange = (newMode: 'taste_contradiction' | 'opposite_critic') => {
     setMode(newMode);
@@ -133,8 +145,7 @@ export default function CountercutPage() {
   const handleCustomQuerySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customQuery.trim()) return;
-    // Re-trigger current mode with prompt focus
-    triggerInvestigation(mode, selectedMovieId);
+    triggerInvestigation(mode, selectedMovieId, customQuery);
     setCustomQuery('');
   };
 
@@ -159,10 +170,15 @@ export default function CountercutPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {activeCase?.isDeterministicFallback && (
+          {activeCase?.isDeterministicFallback ? (
             <span className="text-[11px] font-mono text-[#dd7058] bg-[#dd7058]/10 border border-[#dd7058]/30 px-2.5 py-1 rounded-full flex items-center gap-1.5">
               <Database className="w-3 h-3" />
               <span>POSTGRESQL EVIDENCE-GROUNDED</span>
+            </span>
+          ) : (
+            <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-700/40 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-emerald-400" />
+              <span>GEMINI AGENT ({activeCase?.modelName || 'gemini-3.8-flash'})</span>
             </span>
           )}
           <span className="text-[11px] font-mono text-[#a69a8f] bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-full">
@@ -171,31 +187,28 @@ export default function CountercutPage() {
         </div>
       </div>
 
-      {/* Main 2-Column Responsive Layout matching reference COUNTERCUT_DESKTOP_REFERENCE_2X.png */}
+      {/* Main 2-Column Responsive Layout matching COUNTERCUT_DESKTOP_REFERENCE_2X.png */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Workspace (~68% width on desktop) */}
         <div className="lg:col-span-8 space-y-6">
-          {/* Header Title Section */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[2px] text-[#dd7058] font-bold">
-              <span className="w-2 h-2 rounded-full bg-[#dd7058] shadow-[0_0_8px_#dd7058]" />
-              <span>THE COUNTERCUT</span>
+          {/* Header Title Section with Compact Mode Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-[2px] text-[#dd7058] font-bold">
+                <span className="w-2 h-2 rounded-full bg-[#dd7058] shadow-[0_0_8px_#dd7058]" />
+                <span>THE COUNTERCUT</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight mt-1">
+                Where your taste breaks pattern.
+              </h1>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-              Where your taste breaks pattern.
-            </h1>
-            <p className="text-sm text-[#a99c91] leading-relaxed max-w-2xl">
-              We find films where your opinion diverges from your usual taste, investigate the reasons, and show you the full database evidence behind it.
-            </p>
-          </div>
 
-          {/* Mode Selector & Targeted Film Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-[#171615] border border-[#54433b]">
-            <div className="flex items-center gap-2">
+            {/* Compact Mode Controls right at the top */}
+            <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-[#171615] border border-[#54433b] shrink-0">
               <button
                 onClick={() => handleModeChange('taste_contradiction')}
                 disabled={isInvestigating}
-                className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
                   mode === 'taste_contradiction'
                     ? 'bg-[#dd7058] text-[#17100e] shadow-sm'
                     : 'text-[#a99c91] hover:text-white hover:bg-white/5'
@@ -206,7 +219,7 @@ export default function CountercutPage() {
               <button
                 onClick={() => handleModeChange('opposite_critic')}
                 disabled={isInvestigating}
-                className={`py-1.5 px-3.5 rounded-lg text-xs font-bold transition-all ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
                   mode === 'opposite_critic'
                     ? 'bg-[#dd7058] text-[#17100e] shadow-sm'
                     : 'text-[#a99c91] hover:text-white hover:bg-white/5'
@@ -214,16 +227,13 @@ export default function CountercutPage() {
               >
                 Find My Opposite
               </button>
-            </div>
 
-            {mode === 'opposite_critic' && (
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-[#a99c91] font-mono">TARGET FILM:</span>
+              {mode === 'opposite_critic' && (
                 <select
                   value={selectedMovieId}
                   onChange={(e) => handleMovieChange(e.target.value)}
                   disabled={isInvestigating}
-                  className="bg-[#221f1c] border border-[#54433b] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-[#dd7058]"
+                  className="bg-[#221f1c] border border-[#54433b] rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-[#dd7058]"
                 >
                   {candidateMovies.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -231,17 +241,17 @@ export default function CountercutPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              )}
 
-            <button
-              onClick={() => triggerInvestigation(mode, selectedMovieId)}
-              disabled={isInvestigating}
-              className="py-1.5 px-3 rounded-lg border border-[#54433b] hover:bg-white/5 text-xs text-[#eee7dd] flex items-center gap-1.5 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isInvestigating ? 'animate-spin' : ''}`} />
-              <span>{isInvestigating ? 'Investigating...' : 'Re-run analysis'}</span>
-            </button>
+              <button
+                onClick={() => triggerInvestigation(mode, selectedMovieId)}
+                disabled={isInvestigating}
+                className="p-1.5 rounded-lg border border-[#54433b] hover:bg-white/5 text-[#eee7dd] transition-colors disabled:opacity-50"
+                title="Re-run analysis"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isInvestigating ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -251,12 +261,12 @@ export default function CountercutPage() {
             </div>
           )}
 
-          {/* Matched Film Pair Composition */}
+          {/* Matched Film Pair Composition - PRIMARY VIEWPORT LEADER */}
           {activeCase?.primaryMovie && (
             <div className="relative">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
                 {/* Left Film Card */}
-                <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between group">
+                <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between group shadow-lg">
                   {/* Backdrop Header */}
                   <div className="h-44 sm:h-52 w-full relative overflow-hidden bg-[#241f1c]">
                     {activeCase.primaryMovie.backdrop_url || activeCase.primaryMovie.poster_url ? (
@@ -308,7 +318,7 @@ export default function CountercutPage() {
 
                 {/* Right Film Card */}
                 {activeCase.secondaryMovie ? (
-                  <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between group">
+                  <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between group shadow-lg">
                     {/* Backdrop Header */}
                     <div className="h-44 sm:h-52 w-full relative overflow-hidden bg-[#241f1c]">
                       {activeCase.secondaryMovie.backdrop_url || activeCase.secondaryMovie.poster_url ? (
@@ -359,7 +369,7 @@ export default function CountercutPage() {
                   </div>
                 ) : (
                   /* Opposite Critic Card for Mode B */
-                  <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between p-6">
+                  <div className="relative rounded-2xl overflow-hidden bg-[#171615] border border-[#54433b] flex flex-col justify-between p-6 shadow-lg">
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-[#dd7058]/20 border border-[#dd7058]/40 flex items-center justify-center text-lg font-bold text-[#dd7058]">
@@ -413,7 +423,7 @@ export default function CountercutPage() {
               {/* Central Connector Tag */}
               {activeCase.connectorLabel && (
                 <div className="hidden md:flex absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-                  <div className="bg-[#0c0b0b] border border-[#54433b] px-3 py-1 rounded-full text-[11px] font-mono text-[#dd7058] shadow-lg whitespace-nowrap">
+                  <div className="bg-[#0c0b0b] border border-[#54433b] px-3.5 py-1.5 rounded-full text-xs font-mono text-[#dd7058] shadow-2xl whitespace-nowrap font-bold">
                     {activeCase.connectorLabel}
                   </div>
                 </div>
@@ -443,69 +453,15 @@ export default function CountercutPage() {
             </div>
           )}
 
-          {/* 4-Stage Connected Tool Timeline */}
-          <div className="p-4 rounded-2xl bg-[#171615] border border-[#54433b] space-y-3">
-            <div className="text-[10px] font-mono uppercase tracking-[1.5px] text-[#a69a8f]">
-              INVESTIGATION WORKFLOW
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative">
-              <div className="space-y-1 p-2 rounded-lg bg-black/20 border border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#dd7058]/20 text-[#dd7058] text-xs font-bold flex items-center justify-center">
-                    1
-                  </span>
-                  <span className="text-xs font-bold text-white">Compare ratings</span>
-                </div>
-                <p className="text-[11px] text-[#a99c91] leading-tight">
-                  Check history across similar films
-                </p>
-              </div>
-
-              <div className="space-y-1 p-2 rounded-lg bg-black/20 border border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#dd7058]/20 text-[#dd7058] text-xs font-bold flex items-center justify-center">
-                    2
-                  </span>
-                  <span className="text-xs font-bold text-white">Read both reviews</span>
-                </div>
-                <p className="text-[11px] text-[#a99c91] leading-tight">
-                  Analyse review texts & themes
-                </p>
-              </div>
-
-              <div className="space-y-1 p-2 rounded-lg bg-[#27211e] border border-[#dd7058]/50 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#dd7058] text-[#17100e] text-xs font-bold flex items-center justify-center">
-                    3
-                  </span>
-                  <span className="text-xs font-bold text-[#dd7058]">Find the contradiction</span>
-                </div>
-                <p className="text-[11px] text-[#cfc2b6] leading-tight">
-                  Identify what makes film different
-                </p>
-              </div>
-
-              <div className="space-y-1 p-2 rounded-lg bg-black/20 border border-white/5">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-white/10 text-[#a99c91] text-xs font-bold flex items-center justify-center">
-                    4
-                  </span>
-                  <span className="text-xs font-bold text-white">Challenge hypothesis</span>
-                </div>
-                <p className="text-[11px] text-[#a99c91] leading-tight">
-                  Tailored double-feature action
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Hypothesis Finding Card */}
           {activeCase && (
             <div className="p-6 rounded-2xl bg-[#221f1c] border border-[#55453c] space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-wider uppercase text-[#dd7058]">
                   <Lightbulb className="w-4 h-4 text-[#dd7058]" />
-                  <span>HYPOTHESIS — GROUNDED IN {activeCase.evidence.length} REVIEWS</span>
+                  <span>
+                    HYPOTHESIS — GROUNDED IN {activeCase.evidence ? activeCase.evidence.length : 0} REVIEWS
+                  </span>
                 </div>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 text-[#cfc2b6] border border-white/10">
                   EMPIRICAL PROVENANCE
@@ -539,6 +495,11 @@ export default function CountercutPage() {
                             ))}
                           </span>
                         )}
+                        {claim.strength === 'insufficient' && (
+                          <span className="ml-2 text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-400 border border-amber-800/40">
+                            UNSUPPORTED
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -554,15 +515,6 @@ export default function CountercutPage() {
                       <li key={i}>{alt}</li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              {activeCase.isDeterministicFallback && (
-                <div className="p-3 rounded-xl bg-white/[0.02] border border-[#54433b] text-[11px] text-[#a99c91] flex items-center gap-2">
-                  <Database className="w-4 h-4 text-[#dd7058] shrink-0" />
-                  <span>
-                    <strong>Database verified:</strong> All metrics, ratings, and quotes are retrieved directly from live PostgreSQL relational storage.
-                  </span>
                 </div>
               )}
 
@@ -592,6 +544,38 @@ export default function CountercutPage() {
               </div>
             </div>
           )}
+
+          {/* 4-Stage Connected Tool Timeline */}
+          <div className="p-4 rounded-2xl bg-[#171615] border border-[#54433b] space-y-3">
+            <div className="text-[10px] font-mono uppercase tracking-[1.5px] text-[#a69a8f]">
+              INVESTIGATION WORKFLOW
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
+                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 01</div>
+                <div className="text-xs font-bold text-white">Review Intersections</div>
+                <div className="text-[10px] text-[#a99c91]">SQL query executed</div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
+                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 02</div>
+                <div className="text-xs font-bold text-white">Evidence Extraction</div>
+                <div className="text-[10px] text-[#a99c91]">Relational quotes verified</div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
+                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 03</div>
+                <div className="text-xs font-bold text-white">Taste Synthesis</div>
+                <div className="text-[10px] text-[#a99c91]">
+                  {activeCase?.isDeterministicFallback ? 'Deterministic PL/pgSQL' : 'Gemini Flash Agent'}
+                </div>
+              </div>
+              <div className="p-2.5 rounded-lg bg-black/30 border border-white/5 space-y-1">
+                <div className="text-[10px] font-mono text-[#dd7058]">STAGE 04</div>
+                <div className="text-xs font-bold text-white">Double-Feature Propose</div>
+                <div className="text-[10px] text-[#a99c91]">User consent required</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right Evidence Rail (~32% width on desktop) */}
@@ -604,8 +588,8 @@ export default function CountercutPage() {
                 THE EVIDENCE
               </h2>
             </div>
-            <span className="text-xs font-mono text-[#dd7058]">
-              {activeCase?.evidence.length || 0} linked records
+            <span className="text-xs font-mono text-[#dd7058] font-bold">
+              {activeCase?.evidence ? activeCase.evidence.length : 0} verified records
             </span>
           </div>
 
@@ -615,15 +599,22 @@ export default function CountercutPage() {
               activeCase.evidence.map((ev) => (
                 <div
                   key={ev.id}
-                  className="p-4 rounded-xl bg-[#171615] border border-[#54433b] space-y-2 hover:border-[#dd7058]/50 transition-colors"
+                  className="p-4 rounded-xl bg-[#171615] border border-[#54433b] space-y-2 hover:border-[#dd7058]/50 transition-colors shadow-sm"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono text-[#dd7058] uppercase font-bold tracking-wider">
-                      {ev.author ? `${ev.author.toUpperCase()} #` : 'EVIDENCE #'}{ev.id}
+                      {ev.author ? `${ev.author.toUpperCase()} · ` : ''}#{ev.id}
                     </span>
-                    {ev.rating && (
-                      <span className="text-xs font-bold text-[#dd7058]">★ {ev.rating}</span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {ev.isSpoiler && (
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-600/60 text-amber-300 font-bold">
+                          SPOILER
+                        </span>
+                      )}
+                      {ev.rating !== undefined && (
+                        <span className="text-xs font-bold text-[#dd7058]">★ {ev.rating}</span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="text-xs font-bold text-white">{ev.title}</div>
@@ -632,9 +623,9 @@ export default function CountercutPage() {
                     "{ev.snippet}"
                   </blockquote>
 
-                  {ev.metadata?.movieId && (
+                  {(ev.metadata?.movieId || ev.targetId) && (
                     <Link
-                      href={`/movies/${ev.metadata.movieId}`}
+                      href={`/movies/${ev.metadata?.movieId || ev.targetId}`}
                       className="text-[11px] font-mono text-[#a99c91] hover:text-[#dd7058] flex items-center gap-1 pt-1 transition-colors"
                     >
                       <span>View film details</span>
@@ -711,6 +702,7 @@ export default function CountercutPage() {
         isOpen={isChallengeModalOpen}
         onClose={() => setIsChallengeModalOpen(false)}
         challenge={activeCase?.proposedChallenge}
+        caseId={activeCase?.id}
       />
     </div>
   );

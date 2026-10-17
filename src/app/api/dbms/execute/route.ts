@@ -34,6 +34,19 @@ export async function POST(request: NextRequest) {
     const hasMutatingStatements = statements.some(s => mutatingPattern.test(s));
     const hasExplainAnalyze = explainAnalyzePattern.test(strippedSql);
 
+    // Destructive DDL statements that permanently damage schema or drop data are strictly prohibited
+    const destructiveDdlPattern = /\b(DROP|TRUNCATE|ALTER)\b/i;
+    if (statements.some(s => destructiveDdlPattern.test(s))) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Security Exception: Destructive DDL (DROP, TRUNCATE, ALTER) is blocked.',
+          detail: 'To preserve relational schema integrity and prevent accidental data loss in DB Studio, schema drops, alterations, and table truncations are prohibited via the interactive console.',
+        },
+        { status: 403 }
+      );
+    }
+
     if (!allowWrite) {
       if (hasMutatingStatements || hasExplainAnalyze) {
         return NextResponse.json(

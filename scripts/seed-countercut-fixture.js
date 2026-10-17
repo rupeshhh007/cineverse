@@ -37,11 +37,7 @@ async function seedCountercutFixtures() {
     await db.query(`
       INSERT INTO reviews (user_id, movie_id, rating, review_text, has_spoilers, updated_at)
       VALUES (1, $1, $2, $3, FALSE, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, movie_id)
-      DO UPDATE SET
-        rating = EXCLUDED.rating,
-        review_text = EXCLUDED.review_text,
-        updated_at = CURRENT_TIMESTAMP;
+      ON CONFLICT (user_id, movie_id) DO NOTHING;
     `, [r.movieId, r.rating, r.reviewText]);
   }
 
@@ -85,11 +81,7 @@ async function seedCountercutFixtures() {
     await db.query(`
       INSERT INTO reviews (user_id, movie_id, rating, review_text, has_spoilers, updated_at)
       VALUES (4, $1, $2, $3, FALSE, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, movie_id)
-      DO UPDATE SET
-        rating = EXCLUDED.rating,
-        review_text = EXCLUDED.review_text,
-        updated_at = CURRENT_TIMESTAMP;
+      ON CONFLICT (user_id, movie_id) DO NOTHING;
     `, [r.movieId, r.rating, r.reviewText]);
   }
 

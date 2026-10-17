@@ -49,7 +49,7 @@ const toolsDeclarations: FunctionDeclaration[] = [
   {
     name: 'find_opposing_critics',
     description:
-      'Find another reviewer who shares high historical agreement with the user on other movies, but strongly diverged on the target movie.',
+      'Find another reviewer who shares high historical agreement with the user on other movies (>= 3 shared films), but strongly diverged on the target movie.',
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -118,8 +118,9 @@ export async function runCountercutInvestigation(params: {
   userId: number;
   mode: 'taste_contradiction' | 'opposite_critic';
   targetMovieId?: number;
+  customQuery?: string;
 }): Promise<CountercutCase> {
-  const { userId, mode, targetMovieId } = params;
+  const { userId, mode, targetMovieId, customQuery } = params;
   const apiKey = process.env.GEMINI_API_KEY;
 
   // Track receipts and evidence across tool executions
@@ -192,7 +193,16 @@ export async function runCountercutInvestigation(params: {
   // If no Gemini API key is configured, execute deterministic synthesis
   if (!apiKey) {
     console.log('ℹ️ [Countercut] No GEMINI_API_KEY detected. Running deterministic database synthesis.');
-    return executeDeterministicInvestigation(userId, mode, targetMovieId, executeTool, receipts, accumulatedEvidence);
+    return executeDeterministicInvestigation(
+      userId,
+      mode,
+      targetMovieId,
+      executeTool,
+      receipts,
+      accumulatedEvidence,
+      undefined,
+      customQuery
+    );
   }
 
   try {
@@ -207,9 +217,23 @@ export async function runCountercutInvestigation(params: {
       const userHistory = await executeTool('get_my_review_history', { limit: 15 });
       initialFindings = { contrastPairs: contrastPairs.slice(0, 3), userHistory: userHistory.slice(0, 5) };
 
+      if (!contrastPairs || contrastPairs.length === 0) {
+        return executeDeterministicInvestigation(
+          userId,
+          mode,
+          targetMovieId,
+          executeTool,
+          receipts,
+          accumulatedEvidence,
+          'No genre-overlapping contrast pair with sufficient divergence found',
+          customQuery
+        );
+      }
+
       initialUserPrompt = `
 You are the Countercut Agent in Cineverse, an evidence-grounded film taste investigation studio.
 The user (user #${userId}) wants to investigate where their film ratings break their usual pattern (Mode A: Taste Contradiction).
+${customQuery ? `User's specific inquiry: "${customQuery.trim()}". Address this question while strictly adhering to real evidence.` : ''}
 
 I have pre-fetched candidate contrast pairs from PostgreSQL:
 ${JSON.stringify(initialFindings)}
@@ -220,16 +244,30 @@ Follow these strict investigative rules:
 3. Call 'get_public_review_evidence' with the review IDs of both films to inspect what the user wrote.
 4. Formulate a qualified, tentative hypothesis explaining what narrative or stylistic element might explain the difference (e.g. emotional momentum vs ambiguous pacing). Do NOT make amateur psychological claims.
 5. Call 'build_challenge_candidates' with the focus movie IDs to offer an approved double-feature challenge.
-6. Provide your final findings in clear JSON format.
+6. Provide your final findings in clear JSON format with headline, hypothesis, claims (with evidenceIds), alternativeExplanations, limitations, and proposedChallenge.
       `.trim();
     } else {
       const mId = targetMovieId || 5;
       const opposing = await executeTool('find_opposing_critics', { movie_id: mId });
       initialFindings = { opposing };
 
+      if (!opposing || opposing.error || !opposing.critic) {
+        return executeDeterministicInvestigation(
+          userId,
+          mode,
+          targetMovieId,
+          executeTool,
+          receipts,
+          accumulatedEvidence,
+          'No opposing critic with >= 3 shared films and >= 3.0 point divergence found',
+          customQuery
+        );
+      }
+
       initialUserPrompt = `
 You are the Countercut Agent in Cineverse.
 The user (user #${userId}) wants to find an opposing reviewer on Movie #${mId} (Mode B: Find My Opposite).
+${customQuery ? `User's specific inquiry: "${customQuery.trim()}". Address this question while strictly adhering to real evidence.` : ''}
 
 I have pre-fetched the candidate opponent from PostgreSQL:
 ${JSON.stringify(initialFindings)}
@@ -239,7 +277,7 @@ Follow these strict investigative rules:
 2. Call 'get_public_review_evidence' with both the user's review ID and the opponent's review ID.
 3. Call 'build_challenge_candidates' with the target movie ID.
 4. Contrast the two written review arguments respectfully and show where their film philosophies diverge.
-5. Provide your final findings in clear JSON format.
+5. Provide your final findings in clear JSON format with headline, hypothesis, claims (with evidenceIds), alternativeExplanations, limitations, and proposedChallenge.
       `.trim();
     }
 
@@ -264,7 +302,16 @@ Follow these strict investigative rules:
       if (!functionCalls || functionCalls.length === 0) {
         // Model produced final textual response
         const text = response.text || '';
-        return parseAndBuildCase(text, userId, mode, receipts, accumulatedEvidence, initialFindings);
+        return parseAndBuildCase(
+          text,
+          userId,
+          mode,
+          receipts,
+          accumulatedEvidence,
+          initialFindings,
+          executeTool,
+          customQuery
+        );
       }
 
       // Execute each function call and append results to history
@@ -285,7 +332,16 @@ Follow these strict investigative rules:
     }
 
     // If loop reached max iterations, do deterministic wrap-up
-    return executeDeterministicInvestigation(userId, mode, targetMovieId, executeTool, receipts, accumulatedEvidence);
+    return executeDeterministicInvestigation(
+      userId,
+      mode,
+      targetMovieId,
+      executeTool,
+      receipts,
+      accumulatedEvidence,
+      'Loop limit reached; completed with deterministic verification',
+      customQuery
+    );
   } catch (err: any) {
     console.warn('⚠️ [Countercut Agent] Gemini call failed or quota exceeded:', err.message);
     // Graceful fallback to deterministic synthesis
@@ -296,7 +352,8 @@ Follow these strict investigative rules:
       executeTool,
       receipts,
       accumulatedEvidence,
-      err.message
+      err.message,
+      customQuery
     );
   }
 }
@@ -312,7 +369,8 @@ async function executeDeterministicInvestigation(
   executeTool: (name: string, args: any) => Promise<any>,
   receipts: ToolReceipt[],
   evidenceMap: Map<string, EvidenceRecord>,
-  fallbackReason?: string
+  fallbackReason?: string,
+  customQuery?: string
 ): Promise<CountercutCase> {
   const caseId = `case_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -329,7 +387,9 @@ async function executeDeterministicInvestigation(
         mode,
         subjectMovieIds: [mId],
         headline: `No qualified opposing reviewer found for ${targetMovie.title}`,
-        hypothesis: `You need at least 3 shared reviewed movies with another critic to establish a statistically meaningful taste baseline.`,
+        hypothesis: customQuery
+          ? `Regarding "${customQuery}": You need at least 3 shared reviewed movies with another critic (with >= 3.0 point divergence) to establish a statistically meaningful taste baseline.`
+          : `You need at least 3 shared reviewed movies with another critic to establish a statistically meaningful taste baseline.`,
         factualMetrics: [
           { label: 'shared films', value: 0, subtext: 'Minimum required: 3' },
           { label: 'past agreement', value: 'N/A', subtext: 'Insufficient common history' },
@@ -337,7 +397,7 @@ async function executeDeterministicInvestigation(
         ],
         claims: [
           {
-            text: `No reviewer in the Cineverse community currently shares >= 3 rated films with you and has also reviewed ${targetMovie.title}.`,
+            text: `No reviewer in the Cineverse community currently shares >= 3 rated films with you and has also reviewed ${targetMovie.title} with >= 3.0 rating difference.`,
             evidenceIds: [],
             strength: 'insufficient',
           },
@@ -349,6 +409,7 @@ async function executeDeterministicInvestigation(
         evidence: [],
         toolReceipts: receipts,
         isDeterministicFallback: true,
+        modelName: 'postgresql-deterministic',
         fallbackReason: fallbackReason || 'No opposing critic meeting minimum overlap threshold',
         primaryMovie: targetMovie,
       };
@@ -402,7 +463,9 @@ async function executeDeterministicInvestigation(
       mode: 'opposite_critic',
       subjectMovieIds: [mId],
       headline: `Where your taste breaks pattern with ${opposing.critic.displayName}.`,
-      hypothesis: `You typically agree with ${opposing.critic.displayName} on high-concept cinema (${opposing.agreementPercentage}% alignment across ${opposing.sharedFilmCount} shared films), but you diverge sharply on ${targetMovie.title}: you praised its cinematic propulsion while they found it emotionally distant.`,
+      hypothesis: customQuery
+        ? `In response to "${customQuery}": You typically agree with ${opposing.critic.displayName} (${opposing.agreementPercentage}% alignment across ${opposing.sharedFilmCount} shared films), but diverge on ${targetMovie.title}: you praised its cinematic propulsion while they found it emotionally distant.`
+        : `You typically agree with ${opposing.critic.displayName} on high-concept cinema (${opposing.agreementPercentage}% alignment across ${opposing.sharedFilmCount} shared films), but you diverge sharply on ${targetMovie.title}: you praised its cinematic propulsion while they found it emotionally distant.`,
       factualMetrics,
       claims,
       alternativeExplanations: [
@@ -422,6 +485,7 @@ async function executeDeterministicInvestigation(
         movies: challengeFilms,
       },
       isDeterministicFallback: true,
+      modelName: 'postgresql-deterministic',
       fallbackReason: fallbackReason || 'Deterministic database synthesis',
       primaryMovie: {
         ...targetMovie,
@@ -444,8 +508,9 @@ async function executeDeterministicInvestigation(
       mode: 'taste_contradiction',
       subjectMovieIds: [],
       headline: 'No genre-overlapping contrast pair detected',
-      hypothesis:
-        'You have not yet rated two films in the same genre with a rating divergence of 2.5 points or greater.',
+      hypothesis: customQuery
+        ? `In response to "${customQuery}": You have not yet rated two films in the same genre with a rating divergence of 2.5 points or greater.`
+        : 'You have not yet rated two films in the same genre with a rating divergence of 2.5 points or greater.',
       factualMetrics: [
         { label: 'contrasts found', value: 0 },
         { label: 'required rating spread', value: '≥ 2.5 pts' },
@@ -462,6 +527,7 @@ async function executeDeterministicInvestigation(
       evidence: [],
       toolReceipts: receipts,
       isDeterministicFallback: true,
+      modelName: 'postgresql-deterministic',
       fallbackReason: fallbackReason || 'Insufficient score divergence in user review history',
     };
     return saveCountercutCase(emptyCase, userId);
@@ -515,7 +581,9 @@ async function executeDeterministicInvestigation(
     mode: 'taste_contradiction',
     subjectMovieIds: [highMovie.movie_id, lowMovie.movie_id],
     headline: 'Where your taste breaks pattern.',
-    hypothesis: `The divergence between ${highMovie.title} (★ ${highMovie.rating}) and ${lowMovie.title} (★ ${lowMovie.rating}) is driven by emotional momentum rather than genre tropes: your reviews reward visceral character stakes over contemplative ambiguity.`,
+    hypothesis: customQuery
+      ? `Investigating "${customQuery}": The divergence between ${highMovie.title} (★ ${highMovie.rating}) and ${lowMovie.title} (★ ${lowMovie.rating}) is driven by emotional momentum rather than genre tropes: your reviews reward visceral character stakes over contemplative ambiguity.`
+      : `The divergence between ${highMovie.title} (★ ${highMovie.rating}) and ${lowMovie.title} (★ ${lowMovie.rating}) is driven by emotional momentum rather than genre tropes: your reviews reward visceral character stakes over contemplative ambiguity.`,
     factualMetrics,
     claims,
     alternativeExplanations: [
@@ -535,6 +603,7 @@ async function executeDeterministicInvestigation(
       movies: challengeFilms,
     },
     isDeterministicFallback: true,
+    modelName: 'postgresql-deterministic',
     fallbackReason: fallbackReason || 'Deterministic database synthesis',
     primaryMovie: {
       movie_id: highMovie.movie_id,
@@ -567,7 +636,8 @@ async function executeDeterministicInvestigation(
 }
 
 /**
- * Parses Gemini output and combines it with real database tool evidence
+ * Parses Gemini output and combines it with strictly verified database tool evidence
+ * Recomputes all factual metrics deterministically from PostgreSQL.
  */
 async function parseAndBuildCase(
   text: string,
@@ -575,7 +645,9 @@ async function parseAndBuildCase(
   mode: 'taste_contradiction' | 'opposite_critic',
   receipts: ToolReceipt[],
   evidenceMap: Map<string, EvidenceRecord>,
-  initialFindings: any
+  initialFindings: any,
+  executeTool: (name: string, args: any) => Promise<any>,
+  customQuery?: string
 ): Promise<CountercutCase> {
   const caseId = `case_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -590,53 +662,228 @@ async function parseAndBuildCase(
     parsed = null;
   }
 
-  // If Gemini produced well-formed JSON, incorporate its refined synthesis
-  const headline = parsed?.headline || (mode === 'opposite_critic' ? 'Where your taste breaks pattern with your opposite critic.' : 'Where your taste breaks pattern.');
-  const hypothesis = parsed?.hypothesis || text.slice(0, 400);
+  // 1. Headlines and hypotheses: Tentative, qualified interpretations
+  const headline =
+    parsed?.headline && typeof parsed.headline === 'string'
+      ? parsed.headline
+      : mode === 'opposite_critic'
+      ? 'Where your taste breaks pattern with your opposite critic.'
+      : 'Where your taste breaks pattern.';
 
-  // Validate claims: only keep claims whose evidenceIds exist in evidenceMap
+  let hypothesis =
+    parsed?.hypothesis && typeof parsed.hypothesis === 'string'
+      ? parsed.hypothesis
+      : text.slice(0, 400).trim();
+
+  if (customQuery && !hypothesis.toLowerCase().includes(customQuery.slice(0, 20).toLowerCase())) {
+    hypothesis = `Regarding "${customQuery}": ${hypothesis}`;
+  }
+
+  // 2. RECOMPUTE FACTUAL METRICS & MOVIE METADATA DETERMINISTICALLY FROM SQL
+  // Never trust LLM-generated numerical values or hallucinated percentages.
+  let factualMetrics: FactualMetric[] = [];
+  let primaryMovie: any = undefined;
+  let secondaryMovie: any = undefined;
+  let oppositeCritic: any = undefined;
+  let connectorLabel: string | undefined = undefined;
+  let subjectMovieIds: number[] = [];
+
+  if (mode === 'opposite_critic' && initialFindings?.opposing) {
+    const opp = initialFindings.opposing;
+    subjectMovieIds = [opp.targetMovieId];
+    factualMetrics = [
+      {
+        label: 'shared films reviewed',
+        value: opp.sharedFilmCount,
+        subtext: 'You and this reviewer on other films',
+        sampleSize: opp.sharedFilmCount,
+      },
+      {
+        label: 'past agreement',
+        value: `${opp.agreementPercentage}%`,
+        subtext: `Similar taste across ${opp.sharedFilmCount} films (target excluded)`,
+      },
+      {
+        label: 'disagreement magnitude',
+        value: `★ ${opp.ratingDifference}`,
+        subtext: `Rating difference on ${opp.targetMovieTitle}`,
+      },
+    ];
+
+    const movieContext = await executeTool('get_movie_context', { movie_ids: [opp.targetMovieId] });
+    const targetCtx = movieContext[0] || { movie_id: opp.targetMovieId, title: opp.targetMovieTitle };
+
+    primaryMovie = {
+      ...targetCtx,
+      userRating: opp.userRating,
+      criticRating: opp.criticRating,
+    };
+    oppositeCritic = opp.critic;
+    connectorLabel = `Shared taste / ${opp.sharedFilmCount} films`;
+  } else if (mode === 'taste_contradiction' && initialFindings?.contrastPairs?.[0]) {
+    const topPair = initialFindings.contrastPairs[0];
+    const highMovie = topPair.highMovie;
+    const lowMovie = topPair.lowMovie;
+    subjectMovieIds = [highMovie.movie_id, lowMovie.movie_id];
+
+    factualMetrics = [
+      {
+        label: 'shared genre',
+        value: topPair.sharedGenres.join(', ') || 'Film',
+        subtext: 'Both films share this categorization',
+      },
+      {
+        label: 'rating difference',
+        value: `★ ${topPair.ratingDifference}`,
+        subtext: `${highMovie.rating} vs ${lowMovie.rating}`,
+      },
+      {
+        label: 'evidence records',
+        value: evidenceMap.size,
+        subtext: 'Verified relational reviews',
+      },
+    ];
+
+    primaryMovie = {
+      movie_id: highMovie.movie_id,
+      title: highMovie.title,
+      poster_url: highMovie.poster_url,
+      backdrop_url: highMovie.backdrop_url,
+      release_date: highMovie.release_date,
+      director: highMovie.director,
+      runtime: highMovie.runtime,
+      genres: highMovie.genres,
+      synopsis: highMovie.synopsis,
+      userRating: highMovie.rating,
+    };
+
+    secondaryMovie = {
+      movie_id: lowMovie.movie_id,
+      title: lowMovie.title,
+      poster_url: lowMovie.poster_url,
+      backdrop_url: lowMovie.backdrop_url,
+      release_date: lowMovie.release_date,
+      director: lowMovie.director,
+      runtime: lowMovie.runtime,
+      genres: lowMovie.genres,
+      synopsis: lowMovie.synopsis,
+      userRating: lowMovie.rating,
+    };
+
+    connectorLabel = `Shared genre / ${topPair.sharedGenres.join(', ')}`;
+  } else {
+    factualMetrics = [
+      { label: 'database evidence', value: evidenceMap.size, subtext: 'Verified relational records' },
+      { label: 'tools executed', value: receipts.length, subtext: 'PostgreSQL & Gemini loop' },
+    ];
+  }
+
+  // 3. VALIDATE CLAIMS: Filter out non-existent evidence IDs; downgrade unsupported claims
   const rawClaims = Array.isArray(parsed?.claims) ? parsed.claims : [];
-  const claims: Claim[] = rawClaims.map((c: any) => ({
-    text: String(c.text || ''),
-    evidenceIds: Array.isArray(c.evidenceIds)
-      ? c.evidenceIds.filter((id: string) => evidenceMap.has(id))
-      : Array.from(evidenceMap.keys()),
-    strength: ['supported', 'tentative', 'insufficient'].includes(c.strength)
-      ? c.strength
-      : 'supported',
-  }));
+  const validatedClaims: Claim[] = [];
 
-  // If model produced no claims, populate supported default claims
-  if (claims.length === 0 && evidenceMap.size > 0) {
-    claims.push({
+  for (const c of rawClaims) {
+    if (!c || typeof c.text !== 'string' || !c.text.trim()) continue;
+
+    // Filter evidence IDs strictly to records present in evidenceMap
+    const validEvidenceIds = Array.isArray(c.evidenceIds)
+      ? c.evidenceIds.map(String).filter((id: string) => evidenceMap.has(id))
+      : [];
+
+    let strength: 'supported' | 'tentative' | 'insufficient' =
+      ['supported', 'tentative', 'insufficient'].includes(c.strength)
+        ? c.strength
+        : 'supported';
+
+    // P0 requirement: Reject or downgrade unsupported claims with no valid evidence IDs
+    if (validEvidenceIds.length === 0) {
+      strength = 'insufficient';
+    }
+
+    validatedClaims.push({
+      text: c.text.trim(),
+      evidenceIds: validEvidenceIds,
+      strength,
+    });
+  }
+
+  // If model produced no claims, populate supported default claims from real evidence
+  if (validatedClaims.length === 0 && evidenceMap.size > 0) {
+    validatedClaims.push({
       text: hypothesis,
       evidenceIds: Array.from(evidenceMap.keys()),
       strength: 'supported',
     });
   }
 
-  // Construct final case with verified database receipts and evidence
+  // 4. VERIFY PROPOSED CHALLENGE AGAINST POSTGRESQL
+  let proposedChallenge: ProposedChallenge | undefined = undefined;
+  if (
+    parsed?.proposedChallenge &&
+    Array.isArray(parsed.proposedChallenge.movieIds) &&
+    parsed.proposedChallenge.movieIds.length >= 2
+  ) {
+    const candidateIds = parsed.proposedChallenge.movieIds.map(Number).filter((n: number) => !isNaN(n));
+    const verifiedMovies = await executeTool('get_movie_context', { movie_ids: candidateIds.slice(0, 2) });
+    if (verifiedMovies && verifiedMovies.length >= 2) {
+      proposedChallenge = {
+        name: String(parsed.proposedChallenge.name || 'Double-Feature Challenge'),
+        reason: String(parsed.proposedChallenge.reason || 'Curated to test your taste boundaries.'),
+        movieIds: verifiedMovies.map((m: any) => m.movie_id),
+        movies: verifiedMovies,
+      };
+    }
+  }
+
+  if (!proposedChallenge) {
+    // Generate deterministic challenge candidates from PostgreSQL
+    const challengeFilms = await executeTool('build_challenge_candidates', {
+      focus_movie_ids: subjectMovieIds,
+    });
+    if (challengeFilms && challengeFilms.length >= 2) {
+      proposedChallenge = {
+        name:
+          mode === 'opposite_critic'
+            ? 'The Propulsion vs. Intimacy Double Feature'
+            : 'The Momentum vs. Ambiguity Challenge',
+        reason: 'Two critically acclaimed films curated to test whether you favor kinetic momentum or atmospheric ambiguity.',
+        movieIds: challengeFilms.map((f: any) => f.movie_id),
+        movies: challengeFilms,
+      };
+    }
+  }
+
+  // Construct final verified Countercut case
   const finalCase: CountercutCase = {
     id: caseId,
     mode,
-    subjectMovieIds: parsed?.subjectMovieIds || (initialFindings?.opposing ? [initialFindings.opposing.targetMovieId] : [1, 18]),
+    subjectMovieIds,
     headline,
     hypothesis,
-    factualMetrics: parsed?.factualMetrics || [
-      { label: 'database evidence', value: evidenceMap.size, subtext: 'Verified relational records' },
-      { label: 'tools executed', value: receipts.length, subtext: 'PostgreSQL & Gemini loop' },
-    ],
-    claims,
-    alternativeExplanations: parsed?.alternativeExplanations || [
-      'Pacing expectations and audio-visual design heavily influence emotional reception.',
-    ],
-    limitations: parsed?.limitations || [
-      'Inferences are strictly derived from stored database reviews and ratings.',
-    ],
+    factualMetrics,
+    claims: validatedClaims,
+    alternativeExplanations: Array.isArray(parsed?.alternativeExplanations)
+      ? parsed.alternativeExplanations.map(String)
+      : [
+          'Stylistic pacing and musical score intensity may exert more influence than plot genre.',
+          'Viewing context (theatrical vs home presentation) may shape emotional engagement.',
+        ],
+    limitations: Array.isArray(parsed?.limitations)
+      ? parsed.limitations.map(String)
+      : [
+          'Hypotheses are strictly derived from stored database reviews and ratings.',
+          'Genre categorizations reflect broad relational taxonomies rather than micro-aesthetic subgenres.',
+        ],
     evidence: Array.from(evidenceMap.values()),
     toolReceipts: receipts,
-    proposedChallenge: parsed?.proposedChallenge,
+    proposedChallenge,
     isDeterministicFallback: false,
+    modelName: GEMINI_MODEL,
+    fallbackReason: undefined,
+    primaryMovie,
+    secondaryMovie,
+    oppositeCritic,
+    connectorLabel,
   };
 
   return saveCountercutCase(finalCase, userId);

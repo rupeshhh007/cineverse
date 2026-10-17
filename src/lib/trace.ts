@@ -1,4 +1,4 @@
-import { query } from '@/lib/db';
+import { query, withTransaction } from '@/lib/db';
 
 export interface TraceStep {
   step_id?: number;
@@ -73,7 +73,7 @@ export async function ensureTraceTables(): Promise<void> {
 
 /**
  * Captures real before/after states, executes the review mutation,
- * and records the genuine trigger/provenance lineage in PostgreSQL.
+ * and records the genuine trigger/provenance lineage in PostgreSQL atomically.
  */
 export async function captureReviewTrace(params: {
   userId: number;
@@ -86,210 +86,212 @@ export async function captureReviewTrace(params: {
 
   const { userId, movieId, rating, reviewText, hasSpoilers } = params;
 
-  // 1. Snapshot BEFORE state
-  const prevReviewRes = await query(
-    `SELECT review_id, rating, review_text, has_spoilers, created_at, updated_at 
-     FROM reviews 
-     WHERE user_id = $1 AND movie_id = $2;`,
-    [userId, movieId]
-  );
-  const existingReview = prevReviewRes.rows[0] || null;
-  const isUpdate = Boolean(existingReview);
+  return await withTransaction(async (tx) => {
+    // 1. Snapshot BEFORE state
+    const prevReviewRes = await tx.query(
+      `SELECT review_id, rating, review_text, has_spoilers, created_at, updated_at 
+       FROM reviews 
+       WHERE user_id = $1 AND movie_id = $2;`,
+      [userId, movieId]
+    );
+    const existingReview = prevReviewRes.rows[0] || null;
+    const isUpdate = Boolean(existingReview);
 
-  const prevMovieRes = await query(
-    `SELECT movie_id, title, poster_url, avg_rating, review_count, director, release_date 
-     FROM movies 
-     WHERE movie_id = $1;`,
-    [movieId]
-  );
-  const movieBefore = prevMovieRes.rows[0];
+    const prevMovieRes = await tx.query(
+      `SELECT movie_id, title, poster_url, avg_rating, review_count, director, release_date 
+       FROM movies 
+       WHERE movie_id = $1;`,
+      [movieId]
+    );
+    const movieBefore = prevMovieRes.rows[0];
 
-  const prevTrendingRes = await query(
-    `SELECT bayesian_score 
-     FROM v_trending_movies 
-     WHERE movie_id = $1;`,
-    [movieId]
-  );
-  const prevBayesianScore = prevTrendingRes.rows[0]?.bayesian_score ?? null;
+    const prevTrendingRes = await tx.query(
+      `SELECT bayesian_score 
+       FROM v_trending_movies 
+       WHERE movie_id = $1;`,
+      [movieId]
+    );
+    const prevBayesianScore = prevTrendingRes.rows[0]?.bayesian_score ?? null;
 
-  // 2. Perform the authentic mutation
-  const mutateSql = `
-    INSERT INTO reviews (user_id, movie_id, rating, review_text, has_spoilers, updated_at)
-    VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
-    ON CONFLICT (user_id, movie_id)
-    DO UPDATE SET
-      rating = EXCLUDED.rating,
-      review_text = EXCLUDED.review_text,
-      has_spoilers = EXCLUDED.has_spoilers,
-      updated_at = CURRENT_TIMESTAMP
-    RETURNING review_id, user_id, movie_id, rating, review_text, has_spoilers, created_at, updated_at;
-  `;
-  const reviewMutationRes = await query(mutateSql, [
-    userId,
-    movieId,
-    rating,
-    reviewText,
-    hasSpoilers,
-  ]);
-  const reviewAfter = reviewMutationRes.rows[0];
+    // 2. Perform the authentic mutation
+    const mutateSql = `
+      INSERT INTO reviews (user_id, movie_id, rating, review_text, has_spoilers, updated_at)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, movie_id)
+      DO UPDATE SET
+        rating = EXCLUDED.rating,
+        review_text = EXCLUDED.review_text,
+        has_spoilers = EXCLUDED.has_spoilers,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING review_id, user_id, movie_id, rating, review_text, has_spoilers, created_at, updated_at;
+    `;
+    const reviewMutationRes = await tx.query(mutateSql, [
+      userId,
+      movieId,
+      rating,
+      reviewText,
+      hasSpoilers,
+    ]);
+    const reviewAfter = reviewMutationRes.rows[0];
 
-  // 3. Snapshot AFTER state
-  const afterMovieRes = await query(
-    `SELECT movie_id, title, poster_url, avg_rating, review_count, director, release_date 
-     FROM movies 
-     WHERE movie_id = $1;`,
-    [movieId]
-  );
-  const movieAfter = afterMovieRes.rows[0];
+    // 3. Snapshot AFTER state
+    const afterMovieRes = await tx.query(
+      `SELECT movie_id, title, poster_url, avg_rating, review_count, director, release_date 
+       FROM movies 
+       WHERE movie_id = $1;`,
+      [movieId]
+    );
+    const movieAfter = afterMovieRes.rows[0];
 
-  // Check activity logs (Trigger 2: trg_log_review_activity is AFTER INSERT only!)
-  const activityLogRes = await query(
-    `SELECT log_id, activity_type, target_id, metadata, created_at 
-     FROM activity_logs 
-     WHERE user_id = $1 AND target_id = $2 AND activity_type = 'NEW_REVIEW'
-     ORDER BY created_at DESC 
-     LIMIT 1;`,
-    [userId, movieId]
-  );
-  const latestActivityLog = activityLogRes.rows[0] || null;
+    // Check activity logs (Trigger 2: trg_log_review_activity is AFTER INSERT only!)
+    const activityLogRes = await tx.query(
+      `SELECT log_id, activity_type, target_id, metadata, created_at 
+       FROM activity_logs 
+       WHERE user_id = $1 AND target_id = $2 AND activity_type = 'NEW_REVIEW'
+       ORDER BY created_at DESC 
+       LIMIT 1;`,
+      [userId, movieId]
+    );
+    const latestActivityLog = activityLogRes.rows[0] || null;
 
-  // Check new Bayesian score from dependent view v_trending_movies
-  const afterTrendingRes = await query(
-    `SELECT bayesian_score 
-     FROM v_trending_movies 
-     WHERE movie_id = $1;`,
-    [movieId]
-  );
-  const afterBayesianScore = afterTrendingRes.rows[0]?.bayesian_score ?? null;
+    // Check new Bayesian score from dependent view v_trending_movies
+    const afterTrendingRes = await tx.query(
+      `SELECT bayesian_score 
+       FROM v_trending_movies 
+       WHERE movie_id = $1;`,
+      [movieId]
+    );
+    const afterBayesianScore = afterTrendingRes.rows[0]?.bayesian_score ?? null;
 
-  // 4. Record Trace Parent Row
-  const traceInsertSql = `
-    INSERT INTO db_action_traces (
-      user_id, action_type, target_type, target_id, mutation_op, 
-      initial_score, final_score, metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING *;
-  `;
+    // 4. Record Trace Parent Row
+    const traceInsertSql = `
+      INSERT INTO db_action_traces (
+        user_id, action_type, target_type, target_id, mutation_op, 
+        initial_score, final_score, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
 
-  const traceRes = await query(traceInsertSql, [
-    userId,
-    'REVIEW_MUTATION',
-    'movie',
-    movieId,
-    isUpdate ? 'UPDATE' : 'INSERT',
-    movieBefore?.avg_rating ?? null,
-    movieAfter?.avg_rating ?? null,
-    JSON.stringify({
+    const traceRes = await tx.query(traceInsertSql, [
+      userId,
+      'REVIEW_MUTATION',
+      'movie',
+      movieId,
+      isUpdate ? 'UPDATE' : 'INSERT',
+      movieBefore?.avg_rating ?? null,
+      movieAfter?.avg_rating ?? null,
+      JSON.stringify({
+        movie_title: movieAfter?.title || movieBefore?.title,
+        movie_poster: movieAfter?.poster_url || movieBefore?.poster_url,
+        prev_review_id: existingReview?.review_id || null,
+        new_review_id: reviewAfter?.review_id,
+        rating_given: rating,
+      }),
+    ]);
+
+    const traceRecord = traceRes.rows[0];
+    const traceId = traceRecord.trace_id;
+
+    // 5. Construct 4 Truthful Lineage Steps
+    const steps: TraceStep[] = [
+      {
+        step_order: 1,
+        step_title: isUpdate ? 'Review row updated' : 'Review row written',
+        step_type: 'ROW_MUTATION',
+        target_object: 'reviews',
+        operation: isUpdate ? 'UPDATE' : 'INSERT',
+        status: 'EXECUTED',
+        description: isUpdate
+          ? `Updated existing review for movie #${movieId} with score ${rating}/10 and revised notes.`
+          : `Inserted new review for movie #${movieId} with score ${rating}/10 into relational storage.`,
+        sql_preview: `INSERT INTO reviews (user_id, movie_id, rating, review_text) VALUES (${userId}, ${movieId}, ${rating}, '${reviewText.slice(0, 30)}...') ON CONFLICT (user_id, movie_id) DO UPDATE...`,
+        before_state: existingReview,
+        after_state: reviewAfter,
+      },
+      {
+        step_order: 2,
+        step_title: 'Movie statistics recalculated',
+        step_type: 'TRIGGER',
+        target_object: 'trg_update_movie_rating',
+        operation: 'EXECUTE',
+        status: 'EXECUTED',
+        description: `PostgreSQL trigger fn_trg_update_movie_rating_stats() recalculated average rating (${movieBefore?.avg_rating ?? '0.0'} → ${movieAfter?.avg_rating}) and review count (${movieBefore?.review_count ?? 0} → ${movieAfter?.review_count}).`,
+        sql_preview: `UPDATE movies SET avg_rating = ${movieAfter?.avg_rating}, review_count = ${movieAfter?.review_count} WHERE movie_id = ${movieId};`,
+        before_state: {
+          avg_rating: movieBefore?.avg_rating,
+          review_count: movieBefore?.review_count,
+        },
+        after_state: {
+          avg_rating: movieAfter?.avg_rating,
+          review_count: movieAfter?.review_count,
+        },
+      },
+      {
+        step_order: 3,
+        step_title: isUpdate ? 'Activity log skipped on update' : 'Activity logged in audit trail',
+        step_type: 'AUDIT_LOG',
+        target_object: 'trg_log_review_activity',
+        operation: isUpdate ? 'TRIGGER_CONDITION_CHECK' : 'INSERT',
+        status: isUpdate ? 'SKIPPED' : 'EXECUTED',
+        description: isUpdate
+          ? 'The activity log trigger fn_trg_log_review_activity is registered as AFTER INSERT on reviews. An UPDATE operation does not fire an insertion trigger, preventing duplicate feed clutter.'
+          : `Audit event NEW_REVIEW added to activity_logs table for downstream social consumption.`,
+        sql_preview: isUpdate
+          ? `-- trg_log_review_activity: TG_OP = 'UPDATE' (trigger declared AFTER INSERT only; event skipped)`
+          : `INSERT INTO activity_logs (user_id, activity_type, target_id, metadata) VALUES (${userId}, 'NEW_REVIEW', ${movieId}, jsonb_build_object(...));`,
+        before_state: isUpdate ? { note: 'Existing activity entry preserved' } : null,
+        after_state: isUpdate ? null : latestActivityLog,
+      },
+      {
+        step_order: 4,
+        step_title: 'Downstream ranking recalculated',
+        step_type: 'DOWNSTREAM_VIEW',
+        target_object: 'v_trending_movies',
+        operation: 'QUERY',
+        status: 'EXECUTED',
+        description: `View v_trending_movies computes Bayesian weighted score (prior threshold = 3.0, global mean rating). Film score moved from ${prevBayesianScore ?? 'N/A'} to ${afterBayesianScore ?? 'N/A'}.`,
+        sql_preview: `SELECT bayesian_score FROM v_trending_movies WHERE movie_id = ${movieId};`,
+        before_state: { bayesian_score: prevBayesianScore },
+        after_state: { bayesian_score: afterBayesianScore },
+      },
+    ];
+
+    // Insert steps into database
+    for (const step of steps) {
+      await tx.query(
+        `INSERT INTO db_action_trace_steps (
+          trace_id, step_order, step_title, step_type, target_object, 
+          operation, status, description, sql_preview, before_state, after_state
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
+        [
+          traceId,
+          step.step_order,
+          step.step_title,
+          step.step_type,
+          step.target_object,
+          step.operation,
+          step.status,
+          step.description,
+          step.sql_preview,
+          JSON.stringify(step.before_state),
+          JSON.stringify(step.after_state),
+        ]
+      );
+    }
+
+    const completeTrace: ActionTrace = {
+      ...traceRecord,
       movie_title: movieAfter?.title || movieBefore?.title,
       movie_poster: movieAfter?.poster_url || movieBefore?.poster_url,
-      prev_review_id: existingReview?.review_id || null,
-      new_review_id: reviewAfter?.review_id,
-      rating_given: rating,
-    }),
-  ]);
+      steps,
+    };
 
-  const traceRecord = traceRes.rows[0];
-  const traceId = traceRecord.trace_id;
-
-  // 5. Construct 4 Truthful Lineage Steps
-  const steps: TraceStep[] = [
-    {
-      step_order: 1,
-      step_title: isUpdate ? 'Review row updated' : 'Review row written',
-      step_type: 'ROW_MUTATION',
-      target_object: 'reviews',
-      operation: isUpdate ? 'UPDATE' : 'INSERT',
-      status: 'EXECUTED',
-      description: isUpdate
-        ? `Updated existing review for movie #${movieId} with score ${rating}/10 and revised notes.`
-        : `Inserted new review for movie #${movieId} with score ${rating}/10 into relational storage.`,
-      sql_preview: `INSERT INTO reviews (user_id, movie_id, rating, review_text) VALUES (${userId}, ${movieId}, ${rating}, '${reviewText.slice(0, 30)}...') ON CONFLICT (user_id, movie_id) DO UPDATE...`,
-      before_state: existingReview,
-      after_state: reviewAfter,
-    },
-    {
-      step_order: 2,
-      step_title: 'Movie statistics recalculated',
-      step_type: 'TRIGGER',
-      target_object: 'trg_update_movie_rating',
-      operation: 'EXECUTE',
-      status: 'EXECUTED',
-      description: `PostgreSQL trigger fn_trg_update_movie_rating_stats() recalculated average rating (${movieBefore?.avg_rating ?? '0.0'} → ${movieAfter?.avg_rating}) and review count (${movieBefore?.review_count ?? 0} → ${movieAfter?.review_count}).`,
-      sql_preview: `UPDATE movies SET avg_rating = ${movieAfter?.avg_rating}, review_count = ${movieAfter?.review_count} WHERE movie_id = ${movieId};`,
-      before_state: {
-        avg_rating: movieBefore?.avg_rating,
-        review_count: movieBefore?.review_count,
-      },
-      after_state: {
-        avg_rating: movieAfter?.avg_rating,
-        review_count: movieAfter?.review_count,
-      },
-    },
-    {
-      step_order: 3,
-      step_title: isUpdate ? 'Activity log skipped on update' : 'Activity logged in audit trail',
-      step_type: 'AUDIT_LOG',
-      target_object: 'trg_log_review_activity',
-      operation: isUpdate ? 'TRIGGER_CONDITION_CHECK' : 'INSERT',
-      status: isUpdate ? 'SKIPPED' : 'EXECUTED',
-      description: isUpdate
-        ? 'The activity log trigger fn_trg_log_review_activity is registered as AFTER INSERT on reviews. An UPDATE operation does not fire an insertion trigger, preventing duplicate feed clutter.'
-        : `Audit event NEW_REVIEW added to activity_logs table for downstream social consumption.`,
-      sql_preview: isUpdate
-        ? `-- trg_log_review_activity: TG_OP = 'UPDATE' (trigger declared AFTER INSERT only; event skipped)`
-        : `INSERT INTO activity_logs (user_id, activity_type, target_id, metadata) VALUES (${userId}, 'NEW_REVIEW', ${movieId}, jsonb_build_object(...));`,
-      before_state: isUpdate ? { note: 'Existing activity entry preserved' } : null,
-      after_state: isUpdate ? null : latestActivityLog,
-    },
-    {
-      step_order: 4,
-      step_title: 'Downstream ranking recalculated',
-      step_type: 'DOWNSTREAM_VIEW',
-      target_object: 'v_trending_movies',
-      operation: 'QUERY',
-      status: 'EXECUTED',
-      description: `View v_trending_movies computes Bayesian weighted score (prior threshold = 3.0, global mean rating). Film score moved from ${prevBayesianScore ?? 'N/A'} to ${afterBayesianScore ?? 'N/A'}.`,
-      sql_preview: `SELECT bayesian_score FROM v_trending_movies WHERE movie_id = ${movieId};`,
-      before_state: { bayesian_score: prevBayesianScore },
-      after_state: { bayesian_score: afterBayesianScore },
-    },
-  ];
-
-  // Insert steps into database
-  for (const step of steps) {
-    await query(
-      `INSERT INTO db_action_trace_steps (
-        trace_id, step_order, step_title, step_type, target_object, 
-        operation, status, description, sql_preview, before_state, after_state
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`,
-      [
-        traceId,
-        step.step_order,
-        step.step_title,
-        step.step_type,
-        step.target_object,
-        step.operation,
-        step.status,
-        step.description,
-        step.sql_preview,
-        JSON.stringify(step.before_state),
-        JSON.stringify(step.after_state),
-      ]
-    );
-  }
-
-  const completeTrace: ActionTrace = {
-    ...traceRecord,
-    movie_title: movieAfter?.title || movieBefore?.title,
-    movie_poster: movieAfter?.poster_url || movieBefore?.poster_url,
-    steps,
-  };
-
-  return {
-    review: reviewAfter,
-    updatedMovie: movieAfter,
-    trace: completeTrace,
-  };
+    return {
+      review: reviewAfter,
+      updatedMovie: movieAfter,
+      trace: completeTrace,
+    };
+  });
 }
 
 /**
