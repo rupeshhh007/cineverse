@@ -31,6 +31,16 @@ export async function POST(request: NextRequest) {
     }
 
     const user = rows[0];
+
+    // All six seeded accounts share a public fixture password.
+    if (process.env.NODE_ENV === 'production' &&
+        process.env.ALLOW_DEMO_LOGIN !== 'true' &&
+        Number(user.user_id) >= 1 && Number(user.user_id) <= 6) {
+      return NextResponse.json(
+        { error: 'Demo accounts are disabled on public deployments.' },
+        { status: 403 }
+      );
+    }
     const isPasswordValid = verifyPassword(password, user.password_hash);
 
     if (!isPasswordValid) {

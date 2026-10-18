@@ -40,7 +40,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     setFormData(prev => ({ ...prev, email: demoEmail, password: 'password123' }));
-    
+
     const result = await login(demoEmail, 'password123');
     setLoading(false);
     if (result.success) {
@@ -82,23 +82,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0c0b0b] text-[#f4eee6] flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#655149] selection:text-white relative">
+    <div className="min-h-screen bg-[#06080d] text-[#f7f8fb] flex items-center justify-center p-4 sm:p-6 lg:p-10 font-sans selection:bg-[#26364a] selection:text-white relative">
       {/* Ambient background light */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0" 
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
         style={{
           backgroundImage: 'radial-gradient(ellipse at 85% 8%, rgba(58, 38, 32, 0.45), transparent 46%), radial-gradient(ellipse at 13% 95%, rgba(45, 37, 28, 0.35), transparent 45%)'
         }}
       />
 
       {/* Contained Framed Canvas */}
-      <div className="w-full max-w-4xl bg-gradient-to-r from-[#181716] via-[#10100f] to-[#1b1714] rounded-[24px] sm:rounded-[28px] border border-[#54433c] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10">
-        
+      <div className="w-full max-w-4xl bg-gradient-to-r from-[#181716] via-[#10100f] to-[#0b1018] rounded-[24px] sm:rounded-[28px] border border-[#54433c] shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10">
+
         {/* Left Column: Atmospheric Cinema Art Panel */}
         <div className="lg:col-span-5 relative p-8 sm:p-10 flex flex-col justify-between overflow-hidden bg-[#141210] min-h-[280px] lg:min-h-full border-b lg:border-b-0 lg:border-r border-[#54433c]/40">
-          <div 
+          <div
             className="absolute inset-0 bg-cover bg-center filter brightness-50 contrast-125 saturate-75 opacity-40 pointer-events-none"
-            style={{ 
+            style={{
               backgroundImage: 'url("https://image.tmdb.org/t/p/original/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg")',
             }}
           />
@@ -108,18 +108,18 @@ export default function LoginPage() {
           <div className="relative z-10">
             <div className="text-2xl font-black tracking-tight text-white flex items-baseline gap-0.5">
               <span>CINEVERSE</span>
-              <span className="text-[#dd7058]">.</span>
+              <span className="text-[#ff6b57]">.</span>
             </div>
-            <div className="text-[10px] font-sans uppercase tracking-[2px] text-[#a99c91] mt-1">
+            <div className="text-[10px] font-sans uppercase tracking-[2px] text-[#8b98aa] mt-1">
               The Private Screening Room
             </div>
           </div>
 
           <div className="relative z-10 space-y-2 max-w-xs mt-12 lg:mt-0">
-            <p className="text-xs text-[#d5cec4] leading-relaxed m-0 italic">
+            <p className="text-xs text-[#d8dee8] leading-relaxed m-0 italic">
               &ldquo;Cinema is a matter of what&apos;s in the frame and what&apos;s out.&rdquo;
             </p>
-            <span className="text-[10px] text-[#968f87] block font-mono">
+            <span className="text-[10px] text-[#718096] block font-mono">
               — Martin Scorsese
             </span>
           </div>
@@ -134,7 +134,7 @@ export default function LoginPage() {
                 <h1 className="text-xl font-bold text-white tracking-tight m-0">
                   {isLogin ? 'Sign in to Cineverse' : 'Create an account'}
                 </h1>
-                <p className="text-xs text-[#a99c91] mt-0.5 mb-0">
+                <p className="text-xs text-[#8b98aa] mt-0.5 mb-0">
                   {isLogin ? 'Access your watchlist and ratings' : 'Join our cinephile collective'}
                 </p>
               </div>
@@ -144,7 +144,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setIsLogin(true)}
                   className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
-                    isLogin ? 'bg-[#eee7dd] text-[#161310] font-bold shadow-sm' : 'text-[#a99c91] hover:text-white'
+                    isLogin ? 'bg-[#f7f8fb] text-[#080b11] font-bold shadow-sm' : 'text-[#8b98aa] hover:text-white'
                   }`}
                 >
                   Sign In
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setIsLogin(false)}
                   className={`px-3 py-1 rounded-lg font-semibold transition-colors ${
-                    !isLogin ? 'bg-[#eee7dd] text-[#161310] font-bold shadow-sm' : 'text-[#a99c91] hover:text-white'
+                    !isLogin ? 'bg-[#f7f8fb] text-[#080b11] font-bold shadow-sm' : 'text-[#8b98aa] hover:text-white'
                   }`}
                 >
                   Register
@@ -170,7 +170,7 @@ export default function LoginPage() {
 
             {/* Quick Demo Accounts */}
             <div className="space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-[#968f87] block">
+              <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-[#718096] block">
                 QUICK SIGN IN (DEMO CINEPHILES)
               </span>
               <div className="grid grid-cols-3 gap-2">
@@ -180,13 +180,13 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => handleDemoLogin(demo.email)}
                     disabled={loading}
-                    className="p-2.5 rounded-xl bg-white/[0.03] border border-[#54433b]/40 hover:border-[#dd7058]/50 text-left transition-colors group flex flex-col justify-between"
+                    className="p-2.5 rounded-xl bg-white/[0.03] border border-[#2a3547]/40 hover:border-[#ff6b57]/50 text-left transition-colors group flex flex-col justify-between"
                   >
-                    <div className="flex items-center justify-between text-[10px] font-mono text-[#a99c91] mb-1">
-                      <span className="w-5 h-5 rounded-full bg-[#785e4b] text-white flex items-center justify-center font-bold text-[9px]">
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#8b98aa] mb-1">
+                      <span className="w-5 h-5 rounded-full bg-[#2d5f7d] text-white flex items-center justify-center font-bold text-[9px]">
                         {demo.initials}
                       </span>
-                      <span className="text-[#dd7058] group-hover:translate-x-0.5 transition-transform">→</span>
+                      <span className="text-[#ff6b57] group-hover:translate-x-0.5 transition-transform">→</span>
                     </div>
                     <div>
                       <strong className="text-xs font-bold text-white block truncate">
@@ -206,7 +206,7 @@ export default function LoginPage() {
               {!isLogin && (
                 <>
                   <div>
-                    <label className="text-xs font-semibold text-[#a99c91] block mb-1">Display Name</label>
+                    <label className="text-xs font-semibold text-[#8b98aa] block mb-1">Display Name</label>
                     <input
                       type="text"
                       name="displayName"
@@ -214,11 +214,11 @@ export default function LoginPage() {
                       placeholder="e.g. Alex Rivera"
                       value={formData.displayName}
                       onChange={handleChange}
-                      className="w-full bg-[#151311] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dd7058]"
+                      className="w-full bg-[#0a0f16] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff6b57]"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#a99c91] block mb-1">Username</label>
+                    <label className="text-xs font-semibold text-[#8b98aa] block mb-1">Username</label>
                     <input
                       type="text"
                       name="username"
@@ -226,14 +226,14 @@ export default function LoginPage() {
                       placeholder="e.g. alex_cine"
                       value={formData.username}
                       onChange={handleChange}
-                      className="w-full bg-[#151311] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dd7058]"
+                      className="w-full bg-[#0a0f16] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff6b57]"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label className="text-xs font-semibold text-[#a99c91] block mb-1">Email</label>
+                <label className="text-xs font-semibold text-[#8b98aa] block mb-1">Email</label>
                 <input
                   type="email"
                   name="email"
@@ -241,12 +241,12 @@ export default function LoginPage() {
                   placeholder="alex@cineverse.io"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full bg-[#151311] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dd7058]"
+                  className="w-full bg-[#0a0f16] border border-[#58463c] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#ff6b57]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#a99c91] block mb-1">Password</label>
+                <label className="text-xs font-semibold text-[#8b98aa] block mb-1">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
@@ -255,12 +255,12 @@ export default function LoginPage() {
                     placeholder="password123"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full bg-[#151311] border border-[#58463c] rounded-xl pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:border-[#dd7058]"
+                    className="w-full bg-[#0a0f16] border border-[#58463c] rounded-xl pl-3 pr-10 py-2 text-xs text-white focus:outline-none focus:border-[#ff6b57]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-[#a99c91] hover:text-white"
+                    className="absolute right-3 top-2.5 text-[#8b98aa] hover:text-white"
                   >
                     {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -270,7 +270,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 rounded-xl bg-[#eee7dd] hover:bg-white text-[#161310] font-bold text-xs transition-colors shadow-sm disabled:opacity-50 mt-2"
+                className="w-full py-2.5 rounded-xl bg-[#f7f8fb] hover:bg-white text-[#080b11] font-bold text-xs transition-colors shadow-sm disabled:opacity-50 mt-2"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

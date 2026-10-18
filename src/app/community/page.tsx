@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Trophy, 
-  Star, 
-  ThumbsUp, 
+import {
+  Trophy,
+  Star,
+  ThumbsUp,
   ArrowRight
 } from 'lucide-react';
 
@@ -31,29 +31,29 @@ export default function CommunityPage() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
+    <div className="space-y-6 animate-fade-in text-[#f7f8fb]">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 shadow-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-[#101620] border border-[#2a3547]/40 shadow-lg">
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#e79178]">
+          <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#ff8f7f]">
             COMMUNITY RANKINGS
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-[-1px] mt-1 m-0">
             Cinephile Leaderboard
           </h1>
-          <p className="text-xs text-[#a99c91] mt-1 mb-0 max-w-xl">
-            Community contributors ranked via PostgreSQL window function <code className="text-[#f2a280] font-mono">DENSE_RANK()</code> on reviews authored and helpful votes received.
+          <p className="text-xs text-[#8b98aa] mt-1 mb-0 max-w-xl">
+            Community contributors ranked via PostgreSQL window function <code className="text-[#ff8f7f] font-mono">DENSE_RANK()</code> on reviews authored and helpful votes received.
           </p>
         </div>
 
-        <div className="text-xs text-[#a99c91] font-mono px-3 py-1.5 rounded-xl bg-black/30 border border-white/5 shrink-0 self-start sm:self-auto">
+        <div className="text-xs text-[#8b98aa] font-mono px-3 py-1.5 rounded-xl bg-black/30 border border-white/5 shrink-0 self-start sm:self-auto">
           View: v_user_leaderboard
         </div>
       </div>
 
       {/* Editorial Leaderboard Table */}
-      <div className="bg-[#171615] border border-[#54433b]/40 rounded-2xl overflow-hidden shadow-lg">
-        <div className="p-4 border-b border-white/[0.08] flex items-center justify-between text-xs text-[#a99c91]">
+      <div className="bg-[#101620] border border-[#2a3547]/40 rounded-2xl overflow-hidden shadow-lg">
+        <div className="p-4 border-b border-white/[0.08] flex items-center justify-between text-xs text-[#8b98aa]">
           <span className="font-bold uppercase tracking-wider text-[10px]">Cinephile</span>
           <div className="flex items-center gap-8 font-mono text-[10px] uppercase tracking-wider">
             <span>Reviews</span>
@@ -63,11 +63,11 @@ export default function CommunityPage() {
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-[#a99c91] animate-pulse">
+          <div className="p-12 text-center text-xs text-[#8b98aa] animate-pulse">
             Calculating window rankings in PostgreSQL...
           </div>
         ) : users.length === 0 ? (
-          <div className="p-12 text-center text-xs text-[#a99c91]">
+          <div className="p-12 text-center text-xs text-[#8b98aa]">
             No member standings computed yet.
           </div>
         ) : (
@@ -94,23 +94,23 @@ export default function CommunityPage() {
                         <img
                           src={u.avatar_url}
                           alt=""
-                          className="w-10 h-10 rounded-full object-cover border border-[#54433b]"
+                          className="w-10 h-10 rounded-full object-cover border border-[#2a3547]"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-[#785e4b] border border-[#b09681] text-white flex items-center justify-center font-bold text-xs">
+                        <div className="w-10 h-10 rounded-full bg-[#2d5f7d] border border-[#5a7892] text-white flex items-center justify-center font-bold text-xs">
                           {initials}
                         </div>
                       )}
                     </Link>
 
                     <div className="min-w-0">
-                      <Link 
+                      <Link
                         href={`/profile/${u.user_id}`}
-                        className="text-sm font-bold text-white hover:text-[#dd7058] transition-colors truncate block"
+                        className="text-sm font-bold text-white hover:text-[#ff6b57] transition-colors truncate block"
                       >
                         {u.display_name}
                       </Link>
-                      <span className="text-[11px] text-[#a99c91] truncate block">
+                      <span className="text-[11px] text-[#8b98aa] truncate block">
                         @{u.username} {u.bio ? `· ${u.bio}` : ''}
                       </span>
                     </div>
@@ -118,19 +118,19 @@ export default function CommunityPage() {
 
                   {/* Stats & Rank */}
                   <div className="flex items-center gap-8 font-mono text-xs shrink-0">
-                    <div className="w-12 text-right text-[#f4eee6]">
+                    <div className="w-12 text-right text-[#f7f8fb]">
                       {u.total_reviews}
                     </div>
-                    <div className="w-16 text-right text-[#ffb08d] font-semibold">
+                    <div className="w-16 text-right text-[#ff9b83] font-semibold">
                       {u.total_likes_received || 0}
                     </div>
                     <div className="w-12 text-right">
                       {isTop ? (
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#dd7058] text-[#1b100e] text-[11px] font-bold">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#ff6b57] text-[#1b100e] text-[11px] font-bold">
                           #1
                         </span>
                       ) : (
-                        <span className="text-[#a99c91] text-xs font-semibold">
+                        <span className="text-[#8b98aa] text-xs font-semibold">
                           #{rank}
                         </span>
                       )}

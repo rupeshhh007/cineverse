@@ -2,13 +2,26 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getAuthenticatedUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await getAuthenticatedUser(request))) {
+      return NextResponse.json({ error: 'Sign-in required for trigger demonstrations.' }, { status: 401 });
+    }
+    // This endpoint changes real review data. Never permit on public deployments.
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DBMS_DEMO_MUTATIONS !== 'true') {
+      return NextResponse.json({
+        error: 'Trigger mutations are disabled. Enable explicitly on a disposable local demo database.'
+      }, { status: 403 });
+    }
     const body = await request.json();
     const movieId = parseInt(body.movieId || '1', 10);
     const testRating = parseFloat(body.rating || '10.0');
-    const testUserId = 5; // David Miller
+    if (!Number.isSafeInteger(movieId) || movieId <= 0 || !Number.isFinite(testRating) || testRating < 1 || testRating > 10) {
+      return NextResponse.json({ error: 'Valid movie ID and rating (1–10) required.' }, { status: 400 });
+    }
+    const testUserId = 5; // Seeded fixture user; only available in explicitly enabled local demo mode
 
     // Step 1: Initial state before trigger
     const beforeMovie = await query(

@@ -18,12 +18,12 @@ export default function MovieCard({ movie }: MovieCardProps) {
   const rating = Number(movie.avg_rating || 0);
 
   return (
-    <Link 
-      href={`/movies/${movie.movie_id}`} 
+    <Link
+      href={`/movies/${movie.movie_id}`}
       className="group flex flex-col space-y-1.5 select-none"
     >
       {/* Poster Image Container */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#181513] rounded-xl border border-[#7f7360]/25 shadow-md group-hover:border-[#dd7058]/40 transition-all duration-300">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0d121b] rounded-xl border border-[#7f7360]/25 shadow-md group-hover:border-[#ff6b57]/40 transition-all duration-300">
         {!hasError && imgSrc ? (
           <img
             src={imgSrc}
@@ -35,9 +35,9 @@ export default function MovieCard({ movie }: MovieCardProps) {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center text-[#968f87] bg-[#181513]">
+          <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center text-[#718096] bg-[#0d121b]">
             <Film className="w-6 h-6 mb-1.5 opacity-40" />
-            <span className="text-[11px] font-semibold line-clamp-2 text-[#b9aea4]">{movie.title}</span>
+            <span className="text-[11px] font-semibold line-clamp-2 text-[#9aa7b9]">{movie.title}</span>
           </div>
         )}
 
@@ -47,15 +47,15 @@ export default function MovieCard({ movie }: MovieCardProps) {
 
       {/* Metadata Underneath */}
       <div className="flex items-center justify-between gap-1 text-[11px] px-0.5">
-        <strong className="font-semibold text-[#f4eee6] group-hover:text-white truncate max-w-[80%]">
+        <strong className="font-semibold text-[#f7f8fb] group-hover:text-white truncate max-w-[80%]">
           {movie.title}
         </strong>
         {rating > 0 ? (
-          <span className="font-semibold text-[#dd7058] shrink-0">
+          <span className="font-semibold text-[#ff6b57] shrink-0">
             {rating.toFixed(1)}
           </span>
         ) : (
-          <span className="text-[#a9a19a] shrink-0">—</span>
+          <span className="text-[#8d99aa] shrink-0">—</span>
         )}
       </div>
     </Link>

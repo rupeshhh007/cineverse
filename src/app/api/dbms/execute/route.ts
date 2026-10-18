@@ -1,101 +1,66 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { withTransaction } from '@/lib/db';
 import { getAuthenticatedUser } from '@/lib/auth';
 
+/**
+ * The interactive SQL console is a READ-ONLY teaching tool.
+ * Mutations use dedicated, permission-checked application endpoints.
+ * Even an authenticated user cannot opt into arbitrary SQL writes.
+ */
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUser(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Sign in to use the SQL workbench.' }, { status: 401 });
+    }
+
+    // Do not expose a general SQL console on public deployments unless deliberately enabled.
+    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DBMS_SQL_CONSOLE !== 'true') {
+      return NextResponse.json({ error: 'SQL workbench disabled on this deployment.' }, { status: 403 });
+    }
+
     const body = await request.json();
-    const { sql, allowWrite } = body;
-
-    if (!sql || typeof sql !== 'string') {
-      return NextResponse.json({ error: 'SQL query string is required' }, { status: 400 });
+    if (body?.allowWrite === true) {
+      return NextResponse.json({
+        error: 'Arbitrary SQL writes are not supported. Use the dedicated application or Trigger Lab actions.'
+      }, { status: 403 });
     }
 
-    const trimmedSql = sql.trim();
-
-    // Strip comments to inspect underlying statements
-    const strippedSql = trimmedSql
-      .replace(/--.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .trim();
-
-    // Mutating keywords that must not execute in safe read-only mode
-    const mutatingPattern = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE)\b/i;
-    const explainAnalyzePattern = /\bEXPLAIN\s+(ANALYZE|.*\bANALYZE\b)/i;
-
-    // Check multiple statements
-    const statements = strippedSql
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-
-    const hasMutatingStatements = statements.some(s => mutatingPattern.test(s));
-    const hasExplainAnalyze = explainAnalyzePattern.test(strippedSql);
-
-    // Destructive DDL statements that permanently damage schema or drop data are strictly prohibited
-    const destructiveDdlPattern = /\b(DROP|TRUNCATE|ALTER)\b/i;
-    if (statements.some(s => destructiveDdlPattern.test(s))) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Security Exception: Destructive DDL (DROP, TRUNCATE, ALTER) is blocked.',
-          detail: 'To preserve relational schema integrity and prevent accidental data loss in DB Studio, schema drops, alterations, and table truncations are prohibited via the interactive console.',
-        },
-        { status: 403 }
-      );
+    if (typeof body?.sql !== 'string' || !body.sql.trim() || body.sql.length > 20000) {
+      return NextResponse.json({ error: 'A SQL statement of at most 20,000 characters is required.' }, { status: 400 });
     }
 
-    if (!allowWrite) {
-      if (hasMutatingStatements || hasExplainAnalyze) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Execution blocked: Mutating statements (or EXPLAIN ANALYZE) require Write Mode.',
-            detail: 'Cineverse DB Studio operates in protected Read-Only mode by default to ensure database integrity during evaluation.',
-            hint: 'Toggle "Write Mode" in the DB Studio footer to authorize schema or data modifications.',
-          },
-          { status: 403 }
-        );
-      }
-    } else {
-      // In Write Mode, verify user authentication strictly
-      const authUser = await getAuthenticatedUser(request);
-      if (!authUser) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Write Mode requires an authenticated user session.',
-            detail: 'Unauthenticated requests cannot perform mutating operations on the database.',
-          },
-          { status: 401 }
-        );
-      }
+    // Only one SQL statement; reject interior semicolons (including those in literals,
+    // conservatively). The readonly transaction is the actual security boundary.
+    const statement = body.sql.trim().replace(/;\s*$/, '').trim();
+    if (statement.includes(';') || !/^(SELECT|WITH|EXPLAIN)\b/i.test(statement)) {
+      return NextResponse.json({ error: 'Only one read-only SELECT, WITH or EXPLAIN statement is allowed.' }, { status: 403 });
+    }
+    if (/\bANALYZE\b/i.test(statement)) {
+      return NextResponse.json({ error: 'EXPLAIN ANALYZE is not allowed; use EXPLAIN without ANALYZE.' }, { status: 403 });
     }
 
-    const result = await query(trimmedSql);
-
-    // Extract column metadata from first row if available
-    const columns = result.rows.length > 0 ? Object.keys(result.rows[0]) : [];
+    // PostgreSQL rejects data-changing CTEs, user-defined mutating functions and
+    // SELECT INTO inside a READ ONLY transaction. Works for both pg and PGlite.
+    const result = await withTransaction(async tx => {
+      await tx.query('SET TRANSACTION READ ONLY;');
+      return tx.query(statement);
+    });
 
     return NextResponse.json({
       success: true,
-      columns,
+      columns: result.rows.length ? Object.keys(result.rows[0]) : [],
       rows: result.rows,
       rowCount: result.rowCount,
       durationMs: result.durationMs,
-      sql: trimmedSql,
+      sql: statement,
     });
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || 'SQL Execution Error',
-        detail: error.detail || null,
-        hint: error.hint || null,
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Read-only SQL execution failed',
+    }, { status: 400 });
   }
 }

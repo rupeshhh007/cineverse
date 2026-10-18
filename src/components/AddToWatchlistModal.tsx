@@ -38,11 +38,11 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load watchlists');
       setLists(data.lists || []);
-      
-      const active = (data.lists || []).filter((l: any) => 
+
+      const active = (data.lists || []).filter((l: any) =>
         l.movies?.some((m: any) => m.movie_id === movieId)
       ).map((l: any) => l.watchlist_id);
-      
+
       setActiveListIds(active);
     } catch (err: any) {
       setError(err.message || 'Error loading watchlists');
@@ -56,8 +56,8 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
     setError(null);
     try {
       const isCurrentlyInList = activeListIds.includes(listId);
-      const url = isCurrentlyInList 
-        ? `/api/lists/${listId}?movieId=${movieId}` 
+      const url = isCurrentlyInList
+        ? `/api/lists/${listId}?movieId=${movieId}`
         : `/api/lists/${listId}`;
 
       const res = await fetch(url, {
@@ -87,14 +87,14 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-md bg-[#1f1c1a] border border-[#54433b] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-[#f4eee6]">
-        
+      <div className="relative w-full max-w-md bg-[#1f1c1a] border border-[#2a3547] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-[#f7f8fb]">
+
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
           <div>
             <h2 className="text-base font-bold text-white tracking-tight">Save to List</h2>
-            <p className="text-xs text-[#a99c91] truncate max-w-[250px]">{movieTitle}</p>
+            <p className="text-xs text-[#8b98aa] truncate max-w-[250px]">{movieTitle}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 text-[#a99c91] hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1.5 text-[#8b98aa] hover:text-white transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -109,26 +109,26 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
         <div className="overflow-y-auto p-4 space-y-2">
           {!user ? (
             <div className="text-center py-6 space-y-3">
-              <p className="text-xs text-[#a99c91]">
+              <p className="text-xs text-[#8b98aa]">
                 You must be signed in to add films to curated lists.
               </p>
               <Link
                 href="/login"
                 onClick={onClose}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#eee7dd] hover:bg-white text-[#161310] font-bold text-xs transition-colors"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#f7f8fb] hover:bg-white text-[#080b11] font-bold text-xs transition-colors"
               >
                 <LogIn className="w-3.5 h-3.5" /> Sign In
               </Link>
             </div>
           ) : isLoading ? (
-            <div className="text-center py-8 text-[#a99c91] text-xs">Loading your lists...</div>
+            <div className="text-center py-8 text-[#8b98aa] text-xs">Loading your lists...</div>
           ) : lists.length === 0 ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-[#a99c91] text-xs">You haven't created any lists yet.</p>
+              <p className="text-[#8b98aa] text-xs">You haven't created any lists yet.</p>
               <Link
                 href="/lists"
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#eee7dd] text-[#161310] text-xs font-bold transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f7f8fb] text-[#080b11] text-xs font-bold transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" /> Create a Watchlist
               </Link>
@@ -142,9 +142,9 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
                   onClick={() => handleToggleList(list.watchlist_id)}
                   disabled={isUpdating === list.watchlist_id}
                   className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                    isActive 
-                      ? 'bg-[#eee7dd] text-[#161310] font-bold' 
-                      : 'bg-black/25 text-[#f4eee6] hover:bg-white/[0.04] border border-[#54433b]/40'
+                    isActive
+                      ? 'bg-[#f7f8fb] text-[#080b11] font-bold'
+                      : 'bg-black/25 text-[#f7f8fb] hover:bg-white/[0.04] border border-[#2a3547]/40'
                   }`}
                 >
                   <span className="truncate text-xs font-medium">{list.name}</span>
@@ -153,7 +153,7 @@ export default function AddToWatchlistModal({ isOpen, onClose, movieId, movieTit
                   ) : isActive ? (
                     <Check className="w-4 h-4 stroke-[2.5]" />
                   ) : (
-                    <Plus className="w-4 h-4 text-[#a99c91]" />
+                    <Plus className="w-4 h-4 text-[#8b98aa]" />
                   )}
                 </button>
               );

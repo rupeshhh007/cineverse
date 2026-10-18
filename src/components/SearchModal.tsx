@@ -64,30 +64,30 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div 
-        className="w-full max-w-2xl bg-[#1f1c1a] border border-[#54433b] rounded-2xl shadow-2xl overflow-hidden text-[#f4eee6]"
+      <div
+        className="w-full max-w-2xl bg-[#1f1c1a] border border-[#2a3547] rounded-2xl shadow-2xl overflow-hidden text-[#f7f8fb]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-4 py-3.5 border-b border-white/[0.08] gap-3">
-          <Search className="w-5 h-5 text-[#a9a19a] shrink-0" />
+          <Search className="w-5 h-5 text-[#8d99aa] shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search films by title or director..."
-            className="flex-1 bg-transparent border-0 text-sm text-[#f4eee6] placeholder-[#7f7360] focus:outline-none"
+            className="flex-1 bg-transparent border-0 text-sm text-[#f7f8fb] placeholder-[#7f7360] focus:outline-none"
           />
           {searchQuery && (
-            <button 
+            <button
               onClick={() => setSearchQuery('')}
-              className="text-[#a9a19a] hover:text-white p-1"
+              className="text-[#8d99aa] hover:text-white p-1"
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <kbd className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 border border-[#54433b]/60 text-[#a9a19a]">
+          <kbd className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-black/30 border border-[#2a3547]/60 text-[#8d99aa]">
             ESC
           </kbd>
         </div>
@@ -95,13 +95,13 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         {/* Results Area */}
         <div className="max-h-[60vh] overflow-y-auto p-2">
           {isLoading && (
-            <div className="py-8 text-center text-xs text-[#a9a19a] tracking-widest uppercase animate-pulse">
+            <div className="py-8 text-center text-xs text-[#8d99aa] tracking-widest uppercase animate-pulse">
               Searching catalog...
             </div>
           )}
 
           {!isLoading && searchQuery.trim() && results.length === 0 && (
-            <div className="py-8 text-center text-sm text-[#a9a19a]">
+            <div className="py-8 text-center text-sm text-[#8d99aa]">
               No films matching &ldquo;{searchQuery}&rdquo;
             </div>
           )}
@@ -136,14 +136,14 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-[#f4eee6] group-hover:text-white truncate">
+                    <h4 className="text-sm font-semibold text-[#f7f8fb] group-hover:text-white truncate">
                       {movie.title}
                     </h4>
-                    <p className="text-xs text-[#a9a19a] truncate mt-0.5">
+                    <p className="text-xs text-[#8d99aa] truncate mt-0.5">
                       {movie.release_date ? new Date(movie.release_date).getFullYear() : '—'} · {movie.director || 'Cinema'}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-[#ffb08d] shrink-0 font-bold">
+                  <div className="flex items-center gap-1 text-xs text-[#ff9b83] shrink-0 font-bold">
                     <Star className="w-3.5 h-3.5 fill-current" />
                     <span>{Number(movie.avg_rating || 0).toFixed(1)}</span>
                   </div>

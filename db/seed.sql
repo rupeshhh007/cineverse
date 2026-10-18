@@ -542,7 +542,14 @@ INSERT INTO reviews (review_id, user_id, movie_id, rating, review_text, has_spoi
 (47, 2, 37, 8.7, 'An amazing watch! Really enjoyed the themes of this film.', FALSE, 26, NOW() - INTERVAL '20 days'),
 (48, 5, 100, 7.7, 'An amazing watch! Really enjoyed the themes of this film.', FALSE, 33, NOW() - INTERVAL '13 days'),
 (49, 4, 77, 7.9, 'An amazing watch! Really enjoyed the themes of this film.', FALSE, 37, NOW() - INTERVAL '14 days'),
-(50, 3, 93, 8.9, 'An amazing watch! Really enjoyed the themes of this film.', FALSE, 39, NOW() - INTERVAL '24 days')
+(50, 3, 93, 8.9, 'An amazing watch! Really enjoyed the themes of this film.', FALSE, 39, NOW() - INTERVAL '24 days'),
+(51, 1, 18, 4.5, 'Interesting premise regarding nonlinear linguistics, but it felt emotionally detached and slow compared to Villeneuve''s other work. The pacing struggled to maintain tension.', FALSE, 14, NOW() - INTERVAL '11 days'),
+(52, 1, 3, 9.8, 'The definitive superhero film and an all-time classic thriller. Ledger''s Joker is unmatched.', FALSE, 28, NOW() - INTERVAL '21 days'),
+(53, 1, 4, 9.7, 'Visually stunning operatic cinema. Hans Zimmer''s pounding score and Austin Butler''s menacing Feyd-Rautha make it epic.', FALSE, 35, NOW() - INTERVAL '7 days'),
+(54, 1, 13, 9.6, 'Breathtaking visual design and Deakins cinematography. Expands on the original with emotional weight.', FALSE, 22, NOW() - INTERVAL '15 days'),
+(55, 4, 1, 9.8, 'Exceptional audio design and rhythmic pacing. The visual mechanics of the dream layers are masterfully synchronized.', FALSE, 16, NOW() - INTERVAL '12 days'),
+(56, 4, 3, 9.5, 'The score-free truck flip sequence and practical explosion work represent physical effects at their highest technical summit.', FALSE, 24, NOW() - INTERVAL '18 days'),
+(57, 4, 5, 4.0, 'Technically polished and loud, but emotionally hollow. Three hours of men talking in rooms without human vulnerability. Disappointing.', FALSE, 31, NOW() - INTERVAL '26 days')
 ON CONFLICT (review_id) DO NOTHING;
 
 

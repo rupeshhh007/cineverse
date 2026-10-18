@@ -4,6 +4,18 @@ const path = require('path');
 
 const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+// Visiting /countercut?movieId=... (and the first visit to /countercut)
+// creates investigation records, so a complete gallery must use a disposable DB.
+// Explicit opt-in prevents accidental writes to a working or deployed database.
+if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(new URL(BASE_URL).hostname) ||
+    process.env.CINEVERSE_SCREENSHOT_DISPOSABLE !== 'true') {
+  throw new Error(
+    'Screenshot gallery requires a LOCAL disposable database. Set CINEVERSE_SCREENSHOT_DISPOSABLE=true ' +
+    'only after starting Cineverse on an isolated demo DB; production/external BASE_URL values are refused.'
+  );
+}
+
 const SCREENSHOTS_DIR = path.join(__dirname, '..', 'screenshots');
 
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
@@ -75,14 +87,7 @@ async function run() {
     // 5. Capture The Query Lens Drawer Open on Discover
     console.log('📸 Capturing: 10-query-lens-drawer-desktop.png');
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
-    const buttons = await page.$$('button');
-    for (const b of buttons) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Query Lens') || txt.includes('DBMS') || txt.includes('SQL')) {
-        await b.click();
-        break;
-      }
-    }
+    await page.click('button[aria-label="Open Query Lens"]');
     await new Promise(r => setTimeout(r, 800));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-query-lens-drawer-desktop.png') });
 
@@ -90,16 +95,9 @@ async function run() {
     console.log('📸 Capturing: 00-cinetrace-provenance-desktop.png');
     await page.goto(`${BASE_URL}/trace`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1200));
-    // Click "Save review & capture trace →" to demonstrate live transaction tracing
-    const traceBtns = await page.$$('button');
-    for (const b of traceBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Save review & capture trace')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 1500));
+    // Read-only capture: display the most recent saved trace without creating a new review.
+    // To generate an example, create one explicitly on a disposable local demo database first.
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '00-cinetrace-provenance-desktop.png') });
 
     // 7. Capture Movie Details (Inception /movies/1)
@@ -135,15 +133,8 @@ async function run() {
       }
     }
     await new Promise(r => setTimeout(r, 800));
-    const execTrgBtns = await page.$$('button');
-    for (const b of execTrgBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Execute Test Trigger') || txt.includes('Test Trigger')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 1200));
+    // Read-only screenshot; do not execute a real trigger mutation.
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '12-projection-room-trigger-desktop.png') });
 
     // 10. Capture DB Studio — Schema & Interactive ER Diagram
@@ -157,7 +148,16 @@ async function run() {
       }
     }
     await new Promise(r => setTimeout(r, 1000));
+    const fullscreenButton = await page.$('button[aria-label="Enter fullscreen"]');
+    if (fullscreenButton) {
+      await fullscreenButton.click();
+      await page.waitForSelector('button[aria-label="Exit fullscreen"]');
+    }
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '11-projection-room-schema-desktop.png') });
+    if (fullscreenButton) {
+      await page.keyboard.press('Escape');
+      await new Promise(r => setTimeout(r, 300));
+    }
 
     // 11. Capture Activity Feed
     console.log('📸 Capturing: 04-activity-feed-desktop.png');
@@ -193,25 +193,13 @@ async function run() {
     console.log('📸 Capturing: 13-countercut-studio-desktop.png');
     await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Ensure taste_contradiction investigation is loaded
-    const tasteBtns = await page.$$('button');
-    for (const b of tasteBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Investigate My Taste')) {
-        await b.click();
-        console.log('  ⏳ Triggered taste contradiction investigation...');
-        await new Promise(r => setTimeout(r, 4000));
-        break;
-      }
-    }
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '13-countercut-studio-desktop.png') });
 
     // 17. Capture Countercut Studio Desktop - Opposing Critic Mode (Oppenheimer vs Elena Rostov)
     console.log('📸 Capturing: 15-countercut-opposing-desktop.png');
     await page.goto(`${BASE_URL}/countercut?movieId=5`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 4500));
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '15-countercut-opposing-desktop.png') });
 
     // 18. Capture Countercut Challenge Consent Modal
@@ -249,7 +237,7 @@ async function run() {
     console.log('📸 Capturing: 14-countercut-studio-mobile.png');
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '14-countercut-studio-mobile.png') });
 
     console.log('✨ All screenshots captured successfully in screenshots/!');

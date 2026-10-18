@@ -16,7 +16,12 @@ export type ToolReceipt = {
   resultCount: number;
   durationMs: number;
   description: string;
+  recordsReturned?: number;
+  latencyMs?: number;
+  args?: Record<string, any>;
 };
+
+export type AgentToolReceipt = ToolReceipt;
 
 export type EvidenceRecord = {
   id: string; // e.g. 'R-1042'
@@ -29,6 +34,8 @@ export type EvidenceRecord = {
   isSpoiler?: boolean;
   metadata?: Record<string, any>;
 };
+
+export type CountercutEvidence = EvidenceRecord;
 
 export type ProposedChallenge = {
   name: string;

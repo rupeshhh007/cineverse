@@ -38,22 +38,22 @@ export default function TopBar({ onOpenMobileMenu, onOpenSearch }: TopBarProps) 
   const { section, sub } = getBreadcrumb();
 
   return (
-    <header className="flex items-center justify-between pb-4 select-none shrink-0 border-b border-white/[0.08]">
+    <header className="flex items-center justify-between pb-4 select-none shrink-0 border-b border-white/[0.07]">
       {/* Left Breadcrumb & Mobile Menu Trigger */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-[#54433b]/40 text-[#c9c3bc] hover:text-[#f4eee6]"
+          className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-[#2a3547]/40 text-[#c7cfda] hover:text-[#f7f8fb]"
           aria-label="Open navigation menu"
         >
           <Menu className="w-4 h-4" />
         </button>
 
-        <div className="text-xs text-[#cfc5bb] flex items-center gap-2">
-          <strong className="font-bold text-[#f4eee6]">{section}</strong>
+        <div className="text-[11px] uppercase tracking-[0.12em] text-[#8d99aa] flex items-center gap-2">
+          <strong className="font-bold text-[#f7f8fb]">{section}</strong>
           <span className="opacity-40">/</span>
-          <span className="text-[#a9a19a]">{sub}</span>
+          <span className="text-[#8d99aa]">{sub}</span>
         </div>
       </div>
 
@@ -62,23 +62,23 @@ export default function TopBar({ onOpenMobileMenu, onOpenSearch }: TopBarProps) 
         <button
           type="button"
           onClick={onOpenSearch}
-          className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-[#54433b]/40 text-[#c9c3bc] hover:text-[#f4eee6]"
+          className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-[#2a3547]/40 text-[#c7cfda] hover:text-[#f7f8fb]"
           aria-label="Search"
         >
           <Search className="w-4 h-4" />
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs text-[#a9a19a]">
-          <Clock className="w-3.5 h-3.5 text-[#a9a19a]" />
-          <span>Film archive</span>
+        <div className="hidden sm:flex items-center gap-2 text-xs text-[#8d99aa]">
+          <Clock className="w-3.5 h-3.5 text-[#8d99aa]" />
+          <span>Private film archive</span>
         </div>
 
-        <span className="hidden sm:inline-block text-[#54433b]">│</span>
+        <span className="hidden sm:inline-block text-[#2a3547]">│</span>
 
         {user && (
           <Link
             href={`/profile/${user.user_id}`}
-            className="w-[31px] h-[31px] rounded-full bg-[#785e4b] text-[#f4eee6] border border-[#b09681] flex items-center justify-center font-bold text-[11px] hover:opacity-90 transition-opacity"
+            className="w-[31px] h-[31px] rounded-full bg-[#2d5f7d] text-[#f7f8fb] border border-[#5a7892] flex items-center justify-center font-bold text-[11px] hover:opacity-90 transition-opacity"
             title={user.display_name}
           >
             {getInitials(user.display_name)}

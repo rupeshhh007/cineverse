@@ -27,6 +27,9 @@ async function main() {
   console.log('🌱 Executing seed.sql...');
   await db.exec(seedSql);
 
+  const { seedCountercutFixtures } = require('./seed-countercut-fixture');
+  await seedCountercutFixtures();
+
   const moviesCount = await db.query('SELECT COUNT(*)::int as c FROM movies;');
   const usersCount = await db.query('SELECT COUNT(*)::int as c FROM users;');
   const reviewsCount = await db.query('SELECT COUNT(*)::int as c FROM reviews;');
