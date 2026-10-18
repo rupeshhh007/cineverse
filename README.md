@@ -171,8 +171,8 @@ The local seed contains shared demonstration accounts. They are disabled on prod
 | `npm run lint` | Run lint checks |
 | `npm test` | Run the repository QA verification suite |
 | `npm run db:reset` | Recreate and reseed the local database |
-| `npm run db:fixture` | Load the deterministic demo fixture |
-| `node scripts/capture-all-screenshots.js` | Recapture the full product gallery against `BASE_URL` or localhost |
+| `npm run db:fixture` | Load the deterministic demo fixture (local disposable database only) |
+| `CINEVERSE_SCREENSHOT_DISPOSABLE=true node scripts/capture-all-screenshots.js` | Recapture gallery **only against localhost with a disposable demo database**; investigations can persist new cases |
 
 ## Project map
 
