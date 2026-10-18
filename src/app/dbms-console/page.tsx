@@ -140,9 +140,9 @@ export default function DbmsConsolePage() {
   const [triggerTestResult, setTriggerTestResult] = useState<any>(null);
   const [isTestingTrigger, setIsTestingTrigger] = useState(false);
 
-  const handleSelectMovie = (id: number, title?: string) => {
-    setSelectedMovieId(id);
-    const found = moviesList.find(m => m.movie_id === id || (title && m.title.toLowerCase() === title.toLowerCase()));
+  const handleSelectMovie = (id: number | null, title?: string) => {
+    const found = moviesList.find(m => (id !== null && m.movie_id === id) || (title && m.title.toLowerCase() === title.toLowerCase()));
+    setSelectedMovieId(found?.movie_id ?? id);
     if (found) {
       setContextualMovie({
         movieId: found.movie_id,
@@ -156,7 +156,7 @@ export default function DbmsConsolePage() {
     } else if (title) {
       setContextualMovie(prev => ({
         ...prev,
-        movieId: id,
+        movieId: id ?? 0,
         title,
       }));
     }
@@ -205,7 +205,7 @@ export default function DbmsConsolePage() {
           const mid = first.movie_id ? Number(first.movie_id) : null;
           const mtitle = first.title || null;
           if (mid || mtitle) {
-            handleSelectMovie(mid || 1, mtitle);
+            handleSelectMovie(mid, mtitle);
           }
         }
       }
