@@ -44,6 +44,7 @@ export async function getMyReviewHistory(
   const res = await query<any>(sql, [userId, limit]);
   return res.rows.map((row) => ({
     ...row,
+    review_text: row.has_spoilers ? '[Spoiler withheld from AI investigation]' : row.review_text,
     rating: Number(row.rating),
   }));
 }
@@ -133,7 +134,7 @@ export async function findMyContrastPairs(userId: number): Promise<ContrastPair[
         runtime: row.high_runtime,
         synopsis: row.high_synopsis,
         rating: Number(row.high_rating),
-        review_text: row.high_review_text,
+        review_text: row.high_has_spoilers ? '[Spoiler withheld from AI investigation]' : row.high_review_text,
         has_spoilers: row.high_has_spoilers,
         created_at: row.high_created_at,
         genres: row.high_genres,
@@ -149,7 +150,7 @@ export async function findMyContrastPairs(userId: number): Promise<ContrastPair[
         runtime: row.low_runtime,
         synopsis: row.low_synopsis,
         rating: Number(row.low_rating),
-        review_text: row.low_review_text,
+        review_text: row.low_has_spoilers ? '[Spoiler withheld from AI investigation]' : row.low_review_text,
         has_spoilers: row.low_has_spoilers,
         created_at: row.low_created_at,
         genres: row.low_genres,
@@ -266,12 +267,12 @@ export async function findOpposingCritics(
     ratingDifference: Number(best.target_divergence),
     userReview: {
       reviewId: userTarget.review_id,
-      text: userTarget.review_text,
+      text: userTarget.has_spoilers ? '[Spoiler withheld from AI investigation]' : userTarget.review_text,
       hasSpoilers: userTarget.has_spoilers,
     },
     criticReview: {
       reviewId: best.critic_review_id,
-      text: best.critic_review_text,
+      text: best.critic_spoilers ? '[Spoiler withheld from AI investigation]' : best.critic_review_text,
       hasSpoilers: best.critic_spoilers,
     },
     sharedReviews: sharedRes.rows.map((r) => ({
@@ -311,7 +312,7 @@ export async function getPublicReviewEvidence(reviewIds: number[]): Promise<Evid
   const res = await query<any>(sql, [reviewIds]);
   return res.rows.map((row) => {
     // Truncate snippet safely
-    const cleanText = row.review_text.trim();
+    const cleanText = row.has_spoilers ? '' : row.review_text.trim();
     const snippet = cleanText.length > 300 ? cleanText.slice(0, 300) + '…' : cleanText;
     return {
       id: `R-${row.review_id.toString().padStart(4, '0')}`,
@@ -320,7 +321,7 @@ export async function getPublicReviewEvidence(reviewIds: number[]): Promise<Evid
       title: `${row.movie_title} (${row.rating}/10)`,
       author: row.display_name || row.username,
       rating: Number(row.rating),
-      snippet: row.has_spoilers ? `[SPOILER PROTECTED] ${snippet}` : snippet,
+      snippet: row.has_spoilers ? '[Spoiler withheld from AI investigation]' : snippet,
       isSpoiler: Boolean(row.has_spoilers),
       metadata: {
         movieId: row.movie_id,
