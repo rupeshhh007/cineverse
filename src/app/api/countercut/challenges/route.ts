@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'An originating Countercut case is required.' }, { status: 400 });
     }
     if (!Array.isArray(requestedIds) || requestedIds.length !== 2 ||
-        requestedIds.some((id: unknown) => !Number.isSafeInteger(id) || Number(id) <= 0) ||
+        requestedIds.some((id: unknown) => typeof id !== 'number' || !Number.isSafeInteger(id) || id <= 0) ||
         new Set(requestedIds).size !== 2) {
       return NextResponse.json({ error: 'Approve exactly two distinct films.' }, { status: 400 });
     }
