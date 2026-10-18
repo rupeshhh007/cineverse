@@ -23,7 +23,7 @@ CineVerse combines a polished film-discovery product with a hands-on database la
 - **DB Studio** turns joins, views, functions, triggers, and the schema itself into an interactive workspace.
 - **Countercut** creates evidence-grounded arguments about a user's movie taste and requires explicit consent before changing a watchlist.
 
-There are no decorative fake queries in these tools—the traces, result grids, and evidence are derived from the application's database workflows.
+CineTrace and DB Studio display real database records and query results. The contextual Query Journey / Query Lens explanations are illustrative SQL interpretations rather than authenticated physical execution plans.
 
 ## The signature experiences
 
@@ -59,7 +59,7 @@ Countercut investigates a viewer's rating history, genre patterns, social signal
   </tr>
 </table>
 
-Write SQL in a Monaco-powered editor, launch curated investigations, inspect responsive result tables, and watch trigger effects unfold as a sequence rather than reading them as a wall of text.
+Write **read-only** SQL in a Monaco-powered editor, launch curated investigations, and inspect responsive result tables. The Trigger Lab performs real review mutations only when explicitly enabled on a disposable local development database.
 
 ## Product capabilities
 
@@ -69,9 +69,9 @@ Write SQL in a Monaco-powered editor, launch curated investigations, inspect res
 | Movie detail | Cast, metadata, reviews, ratings, and watchlist actions | Joins, constraints, transactions |
 | Community | Activity feed, leaderboard, follows, profiles, and public lists | Social graph, window functions, audit logs |
 | CineTrace | Replays a production mutation step by step | ACID, triggers, JSONB, provenance |
-| DB Studio | Runs SQL and visualizes schema and trigger behavior | Query plans, functions, views, foreign keys |
-| Countercut | Builds taste arguments from stored evidence | Multi-stage reads, explainability, consent gates |
-| Query Lens | Shows the query behind the current surface | Data lineage and query transparency |
+| DB Studio | Runs read-only SQL and visualizes schema and trigger behavior | Logical query structure, functions, views, foreign keys |
+| Countercut | Builds tentative taste arguments from stored evidence | Multi-stage reads, evidence links, consent gates |
+| Query Lens | Shows documented example query patterns behind product views | SQL literacy and query transparency |
 
 ## Relational design
 
@@ -156,8 +156,11 @@ Open [http://localhost:3000](http://localhost:3000). CineVerse uses PGlite autom
 | `SESSION_SECRET` | Recommended | Signs application sessions; use a long random value outside local development |
 | `GEMINI_API_KEY` | No | Enables live model-backed Countercut generation |
 | `GEMINI_MODEL` | No | Overrides the configured Gemini model |
+| `ENABLE_DBMS_SQL_CONSOLE` | No | Explicitly enables read-only interactive SQL on trusted production deployments (disabled otherwise) |
+| `ENABLE_DBMS_DEMO_MUTATIONS` | No | Allows real Trigger Lab mutations **only in local development** when set to `true` |
+| `ALLOW_DEMO_LOGIN` | No | **Unsafe in public production**: re-enables shared seeded demo account logins; do not set on public servers |
 
-The seeded demo account is `alex@cineverse.io` with password `password123`.
+The local seed contains shared demonstration accounts. They are disabled on production deployments by default; use the local fixture for classroom demos. Never enable shared demo credentials on a public deployment.
 
 ### Useful commands
 
