@@ -100,7 +100,7 @@ ORDER BY tc.table_name;`
 export default function DbmsConsolePage() {
   const [activeTab, setActiveTab] = useState<'query' | 'schema' | 'triggers' | 'functions'>('query');
   const [sql, setSql] = useState(PRESET_QUERIES[0].sql);
-  const [allowWrite, setAllowWrite] = useState(false);
+  const allowWrite = false; // Public SQL workbench is read-only
   const [isExecuting, setIsExecuting] = useState(false);
   const [queryResults, setQueryResults] = useState<{
     columns: string[];
@@ -474,7 +474,8 @@ export default function DbmsConsolePage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setAllowWrite(!allowWrite)}
+                    disabled
+                    title="Arbitrary writes are disabled; use Trigger Lab for a controlled demonstration"
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
                       allowWrite
                         ? 'bg-amber-950/60 border border-amber-600/50 text-amber-300'
@@ -491,7 +492,7 @@ export default function DbmsConsolePage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleExecute(`EXPLAIN ANALYZE ${sql}`)}
+                    onClick={() => handleExecute(`EXPLAIN ${sql}`)}
                     disabled={isExecuting}
                     className="px-3 py-1.5 rounded-lg border border-[#2b384b] hover:bg-white/[0.04] text-[11px] text-[#b8c2d0] transition-colors"
                   >
