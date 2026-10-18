@@ -7,9 +7,9 @@ import { Loader2 } from 'lucide-react';
 const Editor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[220px] bg-[#121110] border border-[#54433b]/60 rounded-xl flex items-center justify-center font-mono text-xs text-[#a99c91]">
+    <div className="w-full h-full min-h-[220px] bg-[#080c12] border border-[#2a3547]/60 rounded-xl flex items-center justify-center font-mono text-xs text-[#8b98aa]">
       <div className="flex items-center gap-2">
-        <Loader2 className="w-4 h-4 animate-spin text-[#dd7058]" />
+        <Loader2 className="w-4 h-4 animate-spin text-[#ff6b57]" />
         <span>Loading Monaco SQL Workspace...</span>
       </div>
     </div>
@@ -57,12 +57,12 @@ export default function MonacoSqlEditor({
         { token: 'delimiter', foreground: 'd6d3d1' },
       ],
       colors: {
-        'editor.background': '#121110',
-        'editor.foreground': '#f4eee6',
-        'editorCursor.foreground': '#dd7058',
+        'editor.background': '#080c12',
+        'editor.foreground': '#f7f8fb',
+        'editorCursor.foreground': '#ff6b57',
         'editor.lineHighlightBackground': '#1c1917',
         'editorLineNumber.foreground': '#57534e',
-        'editorLineNumber.activeForeground': '#dd7058',
+        'editorLineNumber.activeForeground': '#ff6b57',
         'editor.selectionBackground': '#44342f',
       },
     });
@@ -72,9 +72,9 @@ export default function MonacoSqlEditor({
 
   if (!isMounted) {
     return (
-      <div 
+      <div
         style={{ height }}
-        className="w-full bg-[#121110] border border-[#54433b]/60 rounded-xl p-4 font-mono text-xs text-[#f4eee6] overflow-auto whitespace-pre"
+        className="w-full bg-[#080c12] border border-[#2a3547]/60 rounded-xl p-4 font-mono text-xs text-[#f7f8fb] overflow-auto whitespace-pre"
       >
         {value}
       </div>
@@ -82,7 +82,7 @@ export default function MonacoSqlEditor({
   }
 
   return (
-    <div className="w-full rounded-xl overflow-hidden border border-[#54433b]/60 shadow-inner bg-[#121110]">
+    <div className="w-full rounded-xl overflow-hidden border border-[#2a3547]/60 shadow-inner bg-[#080c12]">
       <Editor
         height={height}
         language="sql"

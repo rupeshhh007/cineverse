@@ -3,15 +3,15 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, 
-  Film, 
-  User, 
-  Quote, 
-  Database, 
-  CheckCircle2, 
-  ArrowRight, 
-  Maximize2, 
+import {
+  Sparkles,
+  Film,
+  User,
+  Quote,
+  Database,
+  CheckCircle2,
+  ArrowRight,
+  Maximize2,
   RotateCcw,
   Layers,
   Info,
@@ -200,16 +200,16 @@ export default function EvidenceConstellation({
   const activeNode = nodes.find((n) => n.id === selectedNodeId) || null;
 
   return (
-    <div className="rounded-2xl bg-[#171615] border border-[#54433b] overflow-hidden shadow-2xl relative select-none">
+    <div className="rounded-2xl bg-[#101620] border border-[#2a3547] overflow-hidden shadow-2xl relative select-none">
       {/* Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-[#54433b]/60 bg-[#121110]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-[#2a3547]/60 bg-[#080c12]">
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#dd7058] shadow-[0_0_8px_#dd7058]" />
+          <div className="w-2.5 h-2.5 rounded-full bg-[#ff6b57] shadow-[0_0_8px_#ff6b57]" />
           <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-[#dd7058] font-bold block">
+            <span className="text-xs font-mono uppercase tracking-wider text-[#ff6b57] font-bold block">
               EVIDENCE CONSTELLATION GRAPH
             </span>
-            <span className="text-[11px] text-[#a99c91] block">
+            <span className="text-[11px] text-[#8b98aa] block">
               Interactive foreign-key topology: Films • Reviewers • Quotes • Hypotheses
             </span>
           </div>
@@ -218,13 +218,13 @@ export default function EvidenceConstellation({
         {/* Graph Controls */}
         <div className="flex items-center gap-2 text-xs">
           {/* Filter Pills */}
-          <div className="flex items-center bg-[#221f1c] border border-[#54433b] rounded-lg p-0.5">
+          <div className="flex items-center bg-[#221f1c] border border-[#2a3547] rounded-lg p-0.5">
             <button
               onClick={() => setFilterType('all')}
               className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
                 filterType === 'all'
-                  ? 'bg-[#dd7058] text-[#140e0c] font-bold'
-                  : 'text-[#a99c91] hover:text-white'
+                  ? 'bg-[#ff6b57] text-[#070a0f] font-bold'
+                  : 'text-[#8b98aa] hover:text-white'
               }`}
             >
               All
@@ -233,8 +233,8 @@ export default function EvidenceConstellation({
               onClick={() => setFilterType('evidence')}
               className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
                 filterType === 'evidence'
-                  ? 'bg-[#dd7058] text-[#140e0c] font-bold'
-                  : 'text-[#a99c91] hover:text-white'
+                  ? 'bg-[#ff6b57] text-[#070a0f] font-bold'
+                  : 'text-[#8b98aa] hover:text-white'
               }`}
             >
               Evidence Only
@@ -243,8 +243,8 @@ export default function EvidenceConstellation({
               onClick={() => setFilterType('films')}
               className={`px-2.5 py-1 rounded text-[11px] transition-colors ${
                 filterType === 'films'
-                  ? 'bg-[#dd7058] text-[#140e0c] font-bold'
-                  : 'text-[#a99c91] hover:text-white'
+                  ? 'bg-[#ff6b57] text-[#070a0f] font-bold'
+                  : 'text-[#8b98aa] hover:text-white'
               }`}
             >
               Films & Critics
@@ -257,7 +257,7 @@ export default function EvidenceConstellation({
               setZoomLevel(1);
               setSelectedNodeId(null);
             }}
-            className="w-7 h-7 rounded-lg bg-[#221f1c] border border-[#54433b] flex items-center justify-center text-[#a99c91] hover:text-white transition-colors"
+            className="w-7 h-7 rounded-lg bg-[#221f1c] border border-[#2a3547] flex items-center justify-center text-[#8b98aa] hover:text-white transition-colors"
             title="Reset View"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -268,10 +268,10 @@ export default function EvidenceConstellation({
       {/* SVG Canvas Area */}
       <div className="relative w-full h-[380px] sm:h-[420px] bg-[#0f0e0d] overflow-hidden">
         {/* Subtle Background Matrix Grid */}
-        <div 
+        <div
           className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
-            backgroundImage: 'radial-gradient(circle, #dd7058 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(circle, #ff6b57 1px, transparent 1px)',
             backgroundSize: '24px 24px',
           }}
         />
@@ -287,8 +287,8 @@ export default function EvidenceConstellation({
         >
           <defs>
             <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#dd7058" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#dd7058" stopOpacity="0.2" />
+              <stop offset="0%" stopColor="#ff6b57" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#ff6b57" stopOpacity="0.2" />
             </linearGradient>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="glow" />
@@ -311,7 +311,7 @@ export default function EvidenceConstellation({
                   y1={src.y}
                   x2={tgt.x}
                   y2={tgt.y}
-                  stroke={isHighlighted ? '#dd7058' : '#54433b'}
+                  stroke={isHighlighted ? '#ff6b57' : '#2a3547'}
                   strokeWidth={isHighlighted ? 2.5 : 1.5}
                   strokeDasharray={edge.dashed ? '4,4' : 'none'}
                   strokeOpacity={isHighlighted ? 1 : 0.6}
@@ -321,7 +321,7 @@ export default function EvidenceConstellation({
                   <text
                     x={(src.x + tgt.x) / 2}
                     y={(src.y + tgt.y) / 2 - 6}
-                    fill={isHighlighted ? '#dd7058' : '#a99c91'}
+                    fill={isHighlighted ? '#ff6b57' : '#8b98aa'}
                     fontSize="9"
                     fontFamily="monospace"
                     textAnchor="middle"
@@ -338,13 +338,13 @@ export default function EvidenceConstellation({
           {filteredNodes.map((node) => {
             const isSelected = selectedNodeId === node.id;
 
-            let fillColor = '#171615';
-            let strokeColor = '#54433b';
+            let fillColor = '#101620';
+            let strokeColor = '#2a3547';
             let iconLetter = 'F';
 
             if (node.type === 'film') {
               fillColor = '#221915';
-              strokeColor = '#dd7058';
+              strokeColor = '#ff6b57';
               iconLetter = '🎬';
             } else if (node.type === 'critic') {
               fillColor = '#191f24';
@@ -403,7 +403,7 @@ export default function EvidenceConstellation({
                 <text
                   y="34"
                   textAnchor="middle"
-                  fill={isSelected ? '#ffffff' : '#f4eee6'}
+                  fill={isSelected ? '#ffffff' : '#f7f8fb'}
                   fontSize="11"
                   fontWeight="bold"
                   className="select-none pointer-events-none"
@@ -414,7 +414,7 @@ export default function EvidenceConstellation({
                 <text
                   y="46"
                   textAnchor="middle"
-                  fill="#a99c91"
+                  fill="#8b98aa"
                   fontSize="9"
                   fontFamily="monospace"
                   className="select-none pointer-events-none"
@@ -438,15 +438,15 @@ export default function EvidenceConstellation({
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="absolute top-4 right-4 w-72 sm:w-80 bg-[#171615]/95 border border-[#dd7058] rounded-xl p-4 shadow-2xl backdrop-blur-md z-30 space-y-2.5 text-xs text-[#f4eee6]"
+              className="absolute top-4 right-4 w-72 sm:w-80 bg-[#101620]/95 border border-[#ff6b57] rounded-xl p-4 shadow-2xl backdrop-blur-md z-30 space-y-2.5 text-xs text-[#f7f8fb]"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#dd7058] font-bold">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#ff6b57] font-bold">
                   {activeNode.type.toUpperCase()} SOURCE RECORD
                 </span>
                 <button
                   onClick={() => setSelectedNodeId(null)}
-                  className="text-[#a99c91] hover:text-white p-0.5 rounded"
+                  className="text-[#8b98aa] hover:text-white p-0.5 rounded"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -458,17 +458,17 @@ export default function EvidenceConstellation({
               {/* Node Specific Contents */}
               {activeNode.type === 'evidence' && (
                 <div className="space-y-2 pt-1 border-t border-white/5">
-                  <p className="text-[11px] italic text-[#d5cec4] leading-relaxed">
+                  <p className="text-[11px] italic text-[#d8dee8] leading-relaxed">
                     "{activeNode.data.snippet}"
                   </p>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-[#a99c91]">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-[#8b98aa]">
                     <span>Source: reviews.review_text</span>
                     <span>PK: #{activeNode.data.targetId || 1}</span>
                   </div>
                   {onSelectEvidence && (
                     <button
                       onClick={() => onSelectEvidence(activeNode.data.id)}
-                      className="w-full py-1.5 px-3 rounded-lg bg-[#dd7058] hover:bg-[#e47d66] text-[#140e0c] font-bold text-[11px] transition-colors"
+                      className="w-full py-1.5 px-3 rounded-lg bg-[#ff6b57] hover:bg-[#e47d66] text-[#070a0f] font-bold text-[11px] transition-colors"
                     >
                       Focus Evidence Card #{activeNode.data.id} →
                     </button>
@@ -478,7 +478,7 @@ export default function EvidenceConstellation({
 
               {activeNode.type === 'film' && (
                 <div className="pt-1 border-t border-white/5 space-y-2">
-                  <div className="text-[11px] text-[#a99c91]">
+                  <div className="text-[11px] text-[#8b98aa]">
                     Relational Movie Registry: ID #{activeNode.data.movie_id}
                   </div>
                   <Link
@@ -492,7 +492,7 @@ export default function EvidenceConstellation({
 
               {activeNode.type === 'critic' && (
                 <div className="pt-1 border-t border-white/5 space-y-2">
-                  <div className="text-[11px] text-[#a99c91]">
+                  <div className="text-[11px] text-[#8b98aa]">
                     Evaluated User Persona: @{activeNode.data.username} (User #{activeNode.data.userId})
                   </div>
                   <Link
@@ -506,8 +506,8 @@ export default function EvidenceConstellation({
 
               {activeNode.type === 'claim' && (
                 <div className="pt-1 border-t border-white/5 space-y-1">
-                  <div className="text-[11px] text-[#d5cec4]">{activeNode.data.text}</div>
-                  <div className="text-[10px] font-mono text-[#dd7058]">
+                  <div className="text-[11px] text-[#d8dee8]">{activeNode.data.text}</div>
+                  <div className="text-[10px] font-mono text-[#ff6b57]">
                     Linked evidence: {activeNode.data.evidenceIds?.join(', ') || 'None'}
                   </div>
                 </div>

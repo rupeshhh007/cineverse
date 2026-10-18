@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  Download, 
-  ArrowUpDown, 
-  ArrowUp, 
-  ArrowDown, 
-  Search, 
+import {
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Search,
   Film,
   Check
 } from 'lucide-react';
@@ -106,7 +106,7 @@ export default function InteractiveDataGrid({
 
   if (!columns.length) {
     return (
-      <div className="p-8 text-center text-xs text-[#a99c91] font-mono">
+      <div className="p-8 text-center text-xs text-[#8b98aa] font-mono">
         No active query results. Execute a query above to inspect tuples.
       </div>
     );
@@ -117,21 +117,21 @@ export default function InteractiveDataGrid({
       {/* Grid Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Search filter input */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141211] border border-[#54433b] w-64">
-          <Search className="w-3.5 h-3.5 text-[#a99c91] shrink-0" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#141211] border border-[#2a3547] w-64">
+          <Search className="w-3.5 h-3.5 text-[#8b98aa] shrink-0" />
           <input
             type="text"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             placeholder="Filter results..."
-            className="flex-1 bg-transparent border-0 text-xs text-[#f4eee6] placeholder-[#78716c] focus:outline-none font-mono"
+            className="flex-1 bg-transparent border-0 text-xs text-[#f7f8fb] placeholder-[#78716c] focus:outline-none font-mono"
           />
         </div>
 
         {/* CSV Export Button */}
         <button
           onClick={handleExportCsv}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#221f1c] hover:bg-[#2b2724] border border-[#54433b] text-[#f4eee6] font-mono text-[11px] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#221f1c] hover:bg-[#2b2724] border border-[#2a3547] text-[#f7f8fb] font-mono text-[11px] transition-colors"
         >
           {copiedCsv ? (
             <>
@@ -140,7 +140,7 @@ export default function InteractiveDataGrid({
             </>
           ) : (
             <>
-              <Download className="w-3 h-3 text-[#dd7058]" />
+              <Download className="w-3 h-3 text-[#ff6b57]" />
               <span>Export CSV ({processedRows.length})</span>
             </>
           )}
@@ -148,10 +148,10 @@ export default function InteractiveDataGrid({
       </div>
 
       {/* Table Container */}
-      <div className="rounded-xl border border-[#54433b] overflow-hidden bg-[#121110]">
+      <div className="rounded-xl border border-[#2a3547] overflow-hidden bg-[#080c12]">
         <div className="max-h-[300px] overflow-auto">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-[#1c1917] border-b border-[#54433b] z-10 text-[11px] font-mono uppercase tracking-wider text-[#a99c91]">
+            <thead className="sticky top-0 bg-[#1c1917] border-b border-[#2a3547] z-10 text-[11px] font-mono uppercase tracking-wider text-[#8b98aa]">
               <tr>
                 {columns.map((col) => {
                   const isSorted = sortCol === col;
@@ -162,17 +162,17 @@ export default function InteractiveDataGrid({
                       className="px-3.5 py-2.5 cursor-pointer hover:bg-white/5 transition-colors select-none whitespace-nowrap"
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className={isSorted ? 'text-[#dd7058] font-bold' : ''}>
+                        <span className={isSorted ? 'text-[#ff6b57] font-bold' : ''}>
                           {col}
                         </span>
                         {isSorted ? (
                           sortDir === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-[#dd7058]" />
+                            <ArrowUp className="w-3 h-3 text-[#ff6b57]" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-[#dd7058]" />
+                            <ArrowDown className="w-3 h-3 text-[#ff6b57]" />
                           )
                         ) : (
-                          <ArrowUpDown className="w-3 h-3 text-[#54433b]" />
+                          <ArrowUpDown className="w-3 h-3 text-[#2a3547]" />
                         )}
                       </div>
                     </th>
@@ -195,7 +195,7 @@ export default function InteractiveDataGrid({
                       }
                     }}
                     className={`hover:bg-white/[0.04] cursor-pointer transition-colors ${
-                      isSelected ? 'bg-[#dd7058]/15 border-l-2 border-[#dd7058]' : ''
+                      isSelected ? 'bg-[#ff6b57]/15 border-l-2 border-[#ff6b57]' : ''
                     }`}
                   >
                     {columns.map((col) => {

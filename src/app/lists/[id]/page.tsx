@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  Film, 
-  ChevronLeft, 
-  Trash2, 
-  X, 
-  Share2, 
-  Check, 
-  Lock, 
-  Globe 
+import {
+  Film,
+  ChevronLeft,
+  Trash2,
+  X,
+  Share2,
+  Check,
+  Lock,
+  Globe
 } from 'lucide-react';
 import { Watchlist, Movie } from '@/lib/types';
 import MovieCard from '@/components/MovieCard';
@@ -104,7 +104,7 @@ export default function SingleListPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <div className="text-xs font-mono tracking-widest uppercase text-[#a9a19a] animate-pulse">
+        <div className="text-xs font-mono tracking-widest uppercase text-[#8d99aa] animate-pulse">
           Opening collection...
         </div>
       </div>
@@ -113,9 +113,9 @@ export default function SingleListPage() {
 
   if (error || !list) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 space-y-4 max-w-xl mx-auto my-12 text-center text-[#f4eee6]">
+      <div className="flex flex-col items-center justify-center p-6 space-y-4 max-w-xl mx-auto my-12 text-center text-[#f7f8fb]">
         <ErrorMessage message={error || 'List not found'} onRetry={fetchList} />
-        <Link href="/lists" className="text-xs text-[#dd7058] hover:underline flex items-center gap-1.5 font-bold">
+        <Link href="/lists" className="text-xs text-[#ff6b57] hover:underline flex items-center gap-1.5 font-bold">
           <ChevronLeft className="w-4 h-4" /> Return to Collections
         </Link>
       </div>
@@ -123,20 +123,20 @@ export default function SingleListPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
+    <div className="space-y-6 animate-fade-in text-[#f7f8fb]">
       {/* Top Breadcrumb */}
-      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs text-[#a99c91]">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3 text-xs text-[#8b98aa]">
         <Link href="/lists" className="hover:text-white flex items-center gap-1 transition-colors">
           <ChevronLeft className="w-4 h-4" />
           <span>All Collections</span>
         </Link>
-        <span className="font-mono text-[11px] text-[#e79178] uppercase font-bold">
+        <span className="font-mono text-[11px] text-[#ff8f7f] uppercase font-bold">
           {list.is_public ? 'Public Collection' : 'Private'}
         </span>
       </div>
 
       {/* Collection Header Banner */}
-      <div className="p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 shadow-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="p-6 rounded-2xl bg-[#101620] border border-[#2a3547]/40 shadow-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="space-y-2 max-w-2xl">
           <div className="text-[10px] font-bold uppercase tracking-[2px] text-[#da8e77]">
             CURATED LIST · {movies.length} FILMS
@@ -145,13 +145,13 @@ export default function SingleListPage() {
             {list.name}
           </h1>
           {list.description && (
-            <p className="text-xs sm:text-[13px] text-[#d5cec4] leading-relaxed m-0">
+            <p className="text-xs sm:text-[13px] text-[#d8dee8] leading-relaxed m-0">
               {list.description}
             </p>
           )}
-          <div className="text-xs text-[#a99c91] pt-1">
+          <div className="text-xs text-[#8b98aa] pt-1">
             Curated by{' '}
-            <Link href={`/profile/${list.user_id}`} className="text-white font-semibold hover:text-[#dd7058] transition-colors">
+            <Link href={`/profile/${list.user_id}`} className="text-white font-semibold hover:text-[#ff6b57] transition-colors">
               {list.owner_display_name || list.owner_username || 'Member'}
             </Link>
           </div>
@@ -162,7 +162,7 @@ export default function SingleListPage() {
           <button
             type="button"
             onClick={handleShare}
-            className="px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 text-xs font-semibold text-[#f4eee6] flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl bg-white/[0.04] border border-white/10 hover:border-white/20 text-xs font-semibold text-[#f7f8fb] flex items-center gap-1.5 transition-colors"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Share2 className="w-3.5 h-3.5" />}
             <span>{copiedLink ? 'Link copied' : 'Share'}</span>
@@ -184,9 +184,9 @@ export default function SingleListPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="w-full max-w-sm bg-[#1f1c1a] border border-[#54433b] rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-sm bg-[#1f1c1a] border border-[#2a3547] rounded-2xl p-6 shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-white m-0">Delete this collection?</h3>
-            <p className="text-xs text-[#a99c91] leading-relaxed m-0">
+            <p className="text-xs text-[#8b98aa] leading-relaxed m-0">
               This action will remove "{list.name}" and its relational watchlist_items from PostgreSQL. Film records will remain untouched.
             </p>
             <div className="flex items-center gap-2 pt-2">
@@ -201,7 +201,7 @@ export default function SingleListPage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/[0.04] text-xs text-[#a99c91]"
+                className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/[0.04] text-xs text-[#8b98aa]"
               >
                 Cancel
               </button>
@@ -212,10 +212,10 @@ export default function SingleListPage() {
 
       {/* Films Shelf */}
       {movies.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-2">
-          <Film className="w-8 h-8 text-[#a99c91] mx-auto opacity-40" />
+        <div className="p-12 text-center rounded-2xl bg-[#101620] border border-[#2a3547]/40 space-y-2">
+          <Film className="w-8 h-8 text-[#8b98aa] mx-auto opacity-40" />
           <h3 className="text-sm font-bold text-white m-0">This collection is currently empty</h3>
-          <p className="text-xs text-[#a99c91] m-0">Browse films in Discover and use "Save to a list" to curate this collection.</p>
+          <p className="text-xs text-[#8b98aa] m-0">Browse films in Discover and use "Save to a list" to curate this collection.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">

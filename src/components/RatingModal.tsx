@@ -73,16 +73,16 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-md bg-[#1f1c1a] border border-[#54433b] rounded-2xl shadow-2xl overflow-hidden">
-        
+      <div className="relative w-full max-w-md bg-[#1f1c1a] border border-[#2a3547] rounded-2xl shadow-2xl overflow-hidden">
+
         {showSuccess ? (
           <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="w-14 h-14 bg-[#dd7058]/20 border border-[#dd7058] rounded-full flex items-center justify-center">
-              <Check className="w-7 h-7 text-[#dd7058]" />
+            <div className="w-14 h-14 bg-[#ff6b57]/20 border border-[#ff6b57] rounded-full flex items-center justify-center">
+              <Check className="w-7 h-7 text-[#ff6b57]" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-white tracking-tight">Review Committed</h3>
-              <p className="text-xs text-[#a99c91] mt-1">
+              <p className="text-xs text-[#8b98aa] mt-1">
                 PostgreSQL triggers executed: average rating recalculated and audit provenance captured.
               </p>
             </div>
@@ -91,7 +91,7 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
               <Link
                 href={`/trace?movieId=${movieId}${savedTraceId ? `&traceId=${savedTraceId}` : ''}`}
                 onClick={handleCloseClean}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#dd7058] hover:bg-[#e07f69] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#ff6b57] hover:bg-[#e07f69] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors shadow-sm"
               >
                 <GitBranch className="w-3.5 h-3.5" />
                 <span>Trace this mutation in CineTrace →</span>
@@ -100,7 +100,7 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
               <button
                 type="button"
                 onClick={handleCloseClean}
-                className="w-full py-2 px-4 rounded-xl border border-white/10 hover:bg-white/[0.04] text-xs text-[#b9aea4] transition-colors"
+                className="w-full py-2 px-4 rounded-xl border border-white/10 hover:bg-white/[0.04] text-xs text-[#9aa7b9] transition-colors"
               >
                 Close
               </button>
@@ -110,25 +110,25 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
           <div className="p-8 text-center space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <h2 className="text-base font-bold text-white tracking-tight">Sign In Required</h2>
-              <button onClick={onClose} className="p-2 text-[#a9a19a] hover:text-white transition-colors">
+              <button onClick={onClose} className="p-2 text-[#8d99aa] hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-[#a99c91]">
+            <p className="text-xs text-[#8b98aa]">
               You must be signed in to rate or review <span className="text-white font-medium">"{movieTitle}"</span>.
             </p>
             <div className="pt-2 flex flex-col gap-2">
               <Link
                 href="/login"
                 onClick={onClose}
-                className="w-full py-3 bg-[#eee7dd] hover:bg-white text-[#161310] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs"
+                className="w-full py-3 bg-[#f7f8fb] hover:bg-white text-[#080b11] font-bold rounded-xl transition-colors flex items-center justify-center gap-2 text-xs"
               >
                 <LogIn className="w-4 h-4" /> Sign In to Continue
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                className="text-xs text-[#a9a19a] hover:text-white py-1 transition-colors"
+                className="text-xs text-[#8d99aa] hover:text-white py-1 transition-colors"
               >
                 Cancel
               </button>
@@ -139,9 +139,9 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div>
                 <h2 className="text-base font-bold text-white tracking-tight">Rate &amp; Review</h2>
-                <p className="text-xs text-[#a9a19a] truncate max-w-[280px]">{movieTitle}</p>
+                <p className="text-xs text-[#8d99aa] truncate max-w-[280px]">{movieTitle}</p>
               </div>
-              <button onClick={onClose} className="p-2 text-[#a9a19a] hover:text-white transition-colors">
+              <button onClick={onClose} className="p-2 text-[#8d99aa] hover:text-white transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -153,10 +153,10 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
                   <span>{error}</span>
                 </div>
               )}
-              
+
               <div>
-                <div className="text-xs font-semibold text-[#a9a19a] mb-2 uppercase tracking-wider">Score (1-10)</div>
-                <div 
+                <div className="text-xs font-semibold text-[#8d99aa] mb-2 uppercase tracking-wider">Score (1-10)</div>
+                <div
                   className="flex items-center gap-1"
                   onMouseLeave={() => setHoveredRating(0)}
                 >
@@ -170,12 +170,12 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
                         onMouseEnter={() => setHoveredRating(starValue)}
                         onClick={() => setRating(starValue)}
                       >
-                        <Star 
+                        <Star
                           className={`w-5 h-5 ${
-                            starValue <= (hoveredRating || rating) 
-                              ? 'fill-[#dd7058] text-[#dd7058]' 
+                            starValue <= (hoveredRating || rating)
+                              ? 'fill-[#ff6b57] text-[#ff6b57]'
                               : 'text-[#4e4039]'
-                          }`} 
+                          }`}
                         />
                       </button>
                     );
@@ -187,7 +187,7 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-[#a9a19a] block mb-1.5 uppercase tracking-wider">
+                <label className="text-xs font-semibold text-[#8d99aa] block mb-1.5 uppercase tracking-wider">
                   Review (Optional)
                 </label>
                 <textarea
@@ -195,7 +195,7 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
                   placeholder="Share your thoughts on the narrative, direction, or performance..."
                   value={reviewText}
                   onChange={(e) => setReviewText(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#151311] border border-[#58463c] rounded-xl text-xs text-white placeholder-[#7f7360] focus:outline-none focus:border-[#dd7058] transition-colors resize-none"
+                  className="w-full px-3.5 py-2.5 bg-[#0a0f16] border border-[#58463c] rounded-xl text-xs text-white placeholder-[#7f7360] focus:outline-none focus:border-[#ff6b57] transition-colors resize-none"
                 />
               </div>
 
@@ -204,18 +204,18 @@ export default function RatingModal({ isOpen, onClose, movieId, movieTitle, onSu
                   type="button"
                   onClick={() => setContainsSpoilers(!containsSpoilers)}
                   className={`w-4 h-4 rounded flex items-center justify-center border ${
-                    containsSpoilers ? 'bg-[#dd7058] border-[#dd7058]' : 'bg-transparent border-[#58463c]'
+                    containsSpoilers ? 'bg-[#ff6b57] border-[#ff6b57]' : 'bg-transparent border-[#58463c]'
                   }`}
                 >
                   {containsSpoilers && <Check className="w-3 h-3 text-white" />}
                 </button>
-                <span className="text-xs text-[#a9a19a]">Contains spoilers</span>
+                <span className="text-xs text-[#8d99aa]">Contains spoilers</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting || rating === 0}
-                className="w-full py-3 bg-[#eee7dd] hover:bg-white text-[#161310] font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                className="w-full py-3 bg-[#f7f8fb] hover:bg-white text-[#080b11] font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
               >
                 {isSubmitting ? 'Committing to PostgreSQL...' : 'Submit Review'}
               </button>

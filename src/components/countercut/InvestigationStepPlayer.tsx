@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  RotateCcw, 
-  Clock, 
-  Terminal, 
-  CheckCircle2, 
-  Layers, 
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  RotateCcw,
+  Clock,
+  Terminal,
+  CheckCircle2,
+  Layers,
   Database,
   ArrowRight
 } from 'lucide-react';
@@ -61,15 +61,15 @@ export default function InvestigationStepPlayer({
   };
 
   return (
-    <div className="rounded-2xl bg-[#171615] border border-[#54433b] overflow-hidden shadow-xl text-[#f4eee6] select-none">
+    <div className="rounded-2xl bg-[#101620] border border-[#2a3547] overflow-hidden shadow-xl text-[#f7f8fb] select-none">
       {/* Player Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[#54433b]/60 bg-[#121110]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[#2a3547]/60 bg-[#080c12]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#38bdf8]" />
           <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">
             RECORDED INVESTIGATION TIMELINE
           </span>
-          <span className="text-[10px] font-mono text-[#a99c91]">
+          <span className="text-[10px] font-mono text-[#8b98aa]">
             ({receipts.length} verified tool receipts)
           </span>
         </div>
@@ -113,36 +113,36 @@ export default function InvestigationStepPlayer({
                 <span className="px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 font-bold">
                   STEP {currentStep + 1} OF {receipts.length}
                 </span>
-                <span className="text-[#a99c91]">→</span>
-                <span className="text-[#dd7058] font-bold text-sm">
+                <span className="text-[#8b98aa]">→</span>
+                <span className="text-[#ff6b57] font-bold text-sm">
                   {currentReceipt.toolName}()
                 </span>
               </div>
 
               {/* Execution Latency & Records */}
-              <div className="flex items-center gap-3 text-[11px] font-mono text-[#a99c91]">
+              <div className="flex items-center gap-3 text-[11px] font-mono text-[#8b98aa]">
                 <span className="flex items-center gap-1 text-emerald-400">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>{(currentReceipt as any).recordsReturned ?? currentReceipt.resultCount ?? 0} records</span>
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-[#a99c91]" />
+                  <Clock className="w-3.5 h-3.5 text-[#8b98aa]" />
                   <span>{(currentReceipt as any).latencyMs ?? currentReceipt.durationMs ?? 0}ms</span>
                 </span>
               </div>
             </div>
 
             {/* Code / Argument Receipt Box (Bencho Code Reveal style) */}
-            <div className="p-3.5 rounded-xl bg-[#0e0d0c] border border-[#54433b]/80 font-mono text-xs space-y-2">
+            <div className="p-3.5 rounded-xl bg-[#0e0d0c] border border-[#2a3547]/80 font-mono text-xs space-y-2">
               <div className="flex items-center justify-between text-[10px] text-[#8c7f73] uppercase tracking-wider">
                 <span>SQL TOOL EXECUTION PAYLOAD</span>
                 <span>DATABASE DISPATCH</span>
               </div>
               <div className="text-[#cfc2b6] leading-relaxed break-all">
-                <span className="text-[#dd7058]">{currentReceipt.toolName}</span>
+                <span className="text-[#ff6b57]">{currentReceipt.toolName}</span>
                 <span className="text-white">(</span>
-                <span className="text-[#a99c91]">
+                <span className="text-[#8b98aa]">
                   {JSON.stringify((currentReceipt as any).args || {})}
                 </span>
                 <span className="text-white">)</span>
@@ -152,7 +152,7 @@ export default function InvestigationStepPlayer({
             {/* Outcome Explanation */}
             <div className="p-3 rounded-xl bg-[#221f1c] border border-white/5 flex items-start gap-3">
               <Database className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-[#d5cec4] leading-relaxed">
+              <div className="text-xs text-[#d8dee8] leading-relaxed">
                 {currentReceipt.toolName === 'find_my_contrast_pairs' && (
                   <span>
                     Executed deterministic contrast query across your reviews. Discovered genre-overlapping anomaly between{' '}
@@ -188,21 +188,21 @@ export default function InvestigationStepPlayer({
         </AnimatePresence>
 
         {/* Player Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#54433b]/40">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#2a3547]/40">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
                 setCurrentStep(0);
                 setIsPlaying(false);
               }}
-              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#54433b] text-[#a99c91] hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#2a3547] text-[#8b98aa] hover:text-white transition-colors"
               title="Restart Timeline"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handlePrev}
-              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#54433b] text-[#a99c91] hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#2a3547] text-[#8b98aa] hover:text-white transition-colors"
               title="Previous Step"
             >
               <SkipBack className="w-3.5 h-3.5" />
@@ -225,7 +225,7 @@ export default function InvestigationStepPlayer({
             </button>
             <button
               onClick={handleNext}
-              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#54433b] text-[#a99c91] hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-[#221f1c] hover:bg-[#2c2825] border border-[#2a3547] text-[#8b98aa] hover:text-white transition-colors"
               title="Next Step"
             >
               <SkipForward className="w-3.5 h-3.5" />

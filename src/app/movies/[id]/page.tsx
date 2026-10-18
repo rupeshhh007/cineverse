@@ -69,7 +69,7 @@ export default function MovieDetailsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <div className="text-xs font-mono tracking-widest uppercase text-[#a9a19a] animate-pulse">
+        <div className="text-xs font-mono tracking-widest uppercase text-[#8d99aa] animate-pulse">
           Retrieving film reel...
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function MovieDetailsPage() {
     return (
       <div className="flex flex-col items-center justify-center p-6 space-y-4 max-w-xl mx-auto my-12 text-center">
         <ErrorMessage message={error} onRetry={fetchMovieData} />
-        <Link href="/" className="text-xs text-[#b9aea4] hover:text-white flex items-center gap-1.5 transition-colors">
+        <Link href="/" className="text-xs text-[#9aa7b9] hover:text-white flex items-center gap-1.5 transition-colors">
           <ChevronLeft className="w-4 h-4" /> Return to Discover
         </Link>
       </div>
@@ -89,10 +89,10 @@ export default function MovieDetailsPage() {
 
   if (!movie) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 space-y-4 my-16 text-center text-[#f4eee6]">
+      <div className="flex flex-col items-center justify-center p-6 space-y-4 my-16 text-center text-[#f7f8fb]">
         <h1 className="text-2xl font-bold text-white tracking-tight">Film Not Found</h1>
-        <p className="text-xs text-[#a9a19a]">The requested film ID does not exist in the database catalog.</p>
-        <Link href="/" className="text-xs text-[#dd7058] hover:underline flex items-center gap-1.5 font-bold">
+        <p className="text-xs text-[#8d99aa]">The requested film ID does not exist in the database catalog.</p>
+        <Link href="/" className="text-xs text-[#ff6b57] hover:underline flex items-center gap-1.5 font-bold">
           <ChevronLeft className="w-4 h-4" /> Return to Discover
         </Link>
       </div>
@@ -103,7 +103,7 @@ export default function MovieDetailsPage() {
   const featuredReview = reviews[0] || null;
 
   return (
-    <div className="space-y-6 animate-fade-in text-[#f4eee6]">
+    <div className="space-y-6 animate-fade-in text-[#f7f8fb]">
       {/* Cinematic Hero Feature */}
       <div className="relative rounded-2xl overflow-hidden border border-[#54433c] bg-[#161717] min-h-[350px] sm:min-h-[400px] p-6 sm:p-8 flex flex-col justify-end shadow-xl group">
         {/* Backdrop Artwork */}
@@ -114,12 +114,12 @@ export default function MovieDetailsPage() {
             className="w-full h-full object-cover filter contrast-125 saturate-90 opacity-60 group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0e0d0df5] via-[#0c0c0ccd] to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#14100b] via-[#14100b]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080b11] via-[#080b11]/40 to-transparent" />
         </div>
 
         {/* Feature Info */}
         <div className="relative z-10 space-y-3 max-w-2xl">
-          <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#e79178]">
+          <div className="text-[10px] font-bold tracking-[2px] uppercase text-[#ff8f7f]">
             {movie.director ? movie.director.toUpperCase() : 'DIRECTOR'} &nbsp;/&nbsp; {movie.release_date ? new Date(movie.release_date).getFullYear() : '2024'}
           </div>
 
@@ -127,8 +127,8 @@ export default function MovieDetailsPage() {
             {movie.title}
           </h1>
 
-          <div className="flex flex-wrap items-center gap-2.5 text-xs text-[#d0c7bd]">
-            <span className="font-bold text-[#ffb08d] flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs text-[#c7d0dc]">
+            <span className="font-bold text-[#ff9b83] flex items-center gap-1">
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>{ratingVal.toFixed(1)} / 10</span>
             </span>
@@ -143,7 +143,7 @@ export default function MovieDetailsPage() {
           </div>
 
           {movie.overview && (
-            <p className="text-xs sm:text-[13px] text-[#d5cec4] line-clamp-3 leading-relaxed max-w-xl">
+            <p className="text-xs sm:text-[13px] text-[#d8dee8] line-clamp-3 leading-relaxed max-w-xl">
               {movie.overview}
             </p>
           )}
@@ -152,7 +152,7 @@ export default function MovieDetailsPage() {
             <button
               type="button"
               onClick={() => setIsTrailerOpen(true)}
-              className="px-4 py-2.5 rounded-[9px] bg-[#f3ece5] hover:bg-white text-[#161310] text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"
+              className="px-4 py-2.5 rounded-[9px] bg-[#f3ece5] hover:bg-white text-[#080b11] text-xs font-bold flex items-center gap-2 shadow-sm transition-colors"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>Watch trailer</span>
@@ -172,15 +172,15 @@ export default function MovieDetailsPage() {
               onClick={() => setIsRatingOpen(true)}
               className="px-4 py-2.5 rounded-[9px] bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 text-[#f5f0ea] text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
-              <Star className="w-3.5 h-3.5 text-[#ffb08d]" />
+              <Star className="w-3.5 h-3.5 text-[#ff9b83]" />
               <span>Rate &amp; review</span>
             </button>
 
             <Link
               href={`/trace?movieId=${movie.movie_id}`}
-              className="px-4 py-2.5 rounded-[9px] bg-[#dd7058]/20 hover:bg-[#dd7058]/30 border border-[#dd7058]/40 text-[#f0c5a3] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-[9px] bg-[#ff6b57]/20 hover:bg-[#ff6b57]/30 border border-[#ff6b57]/40 text-[#f0c5a3] text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
-              <GitBranch className="w-3.5 h-3.5 text-[#dd7058]" />
+              <GitBranch className="w-3.5 h-3.5 text-[#ff6b57]" />
               <span>CineTrace Provenance</span>
             </Link>
 
@@ -188,7 +188,7 @@ export default function MovieDetailsPage() {
               href={`/countercut?movieId=${movie.movie_id}`}
               className="px-4 py-2.5 rounded-[9px] bg-white/[0.05] hover:bg-white/[0.1] border border-white/20 text-[#f0c5a3] text-xs font-semibold flex items-center gap-1.5 transition-colors"
             >
-              <Split className="w-3.5 h-3.5 text-[#dd7058]" />
+              <Split className="w-3.5 h-3.5 text-[#ff6b57]" />
               <span>Investigate in Countercut</span>
             </Link>
           </div>
@@ -198,23 +198,23 @@ export default function MovieDetailsPage() {
       {/* Two Column Layout: Story & Cast | Community Reviews */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Story & Cast Column (7 Cols) */}
-        <div className="lg:col-span-7 p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-5 shadow-lg">
+        <div className="lg:col-span-7 p-6 rounded-2xl bg-[#101620] border border-[#2a3547]/40 space-y-5 shadow-lg">
           <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <h2 className="text-base font-bold text-white tracking-tight m-0">
               Story &amp; craft
             </h2>
-            <div className="text-[10px] font-mono border border-[#54433b] bg-white/[0.02] text-[#f0c5a3] px-2.5 py-0.5 rounded-full font-semibold">
+            <div className="text-[10px] font-mono border border-[#2a3547] bg-white/[0.02] text-[#f0c5a3] px-2.5 py-0.5 rounded-full font-semibold">
               SPOILER-FREE
             </div>
           </div>
 
-          <p className="text-xs sm:text-[13px] text-[#d5cec4] leading-relaxed">
+          <p className="text-xs sm:text-[13px] text-[#d8dee8] leading-relaxed">
             {movie.overview}
           </p>
 
           {/* Cast & Crew */}
           <div className="space-y-3 pt-2">
-            <div className="text-[10px] font-sans font-bold uppercase tracking-[1.5px] text-[#968f87]">
+            <div className="text-[10px] font-sans font-bold uppercase tracking-[1.5px] text-[#718096]">
               Cast and Crew
             </div>
 
@@ -222,14 +222,14 @@ export default function MovieDetailsPage() {
               <div className="flex flex-wrap items-center gap-4">
                 {cast.slice(0, 6).map((person) => (
                   <div key={person.person_id} className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-[#785e4b] text-white border border-[#b09681] flex items-center justify-center font-bold text-xs shrink-0 tracking-wider">
+                    <div className="w-8 h-8 rounded-full bg-[#2d5f7d] text-white border border-[#5a7892] flex items-center justify-center font-bold text-xs shrink-0 tracking-wider">
                       {getInitials(person.name)}
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-[#f4eee6] leading-tight">
+                      <div className="text-xs font-medium text-[#f7f8fb] leading-tight">
                         {person.name}
                       </div>
-                      <div className="text-[10px] text-[#a9a19a] truncate max-w-[120px]">
+                      <div className="text-[10px] text-[#8d99aa] truncate max-w-[120px]">
                         {person.character_name || person.job_role || 'Cast'}
                       </div>
                     </div>
@@ -237,13 +237,13 @@ export default function MovieDetailsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-[#a9a19a]">Cast records unlisted in database.</div>
+              <div className="text-xs text-[#8d99aa]">Cast records unlisted in database.</div>
             )}
           </div>
         </div>
 
         {/* Community Verdict & Reviews Column (5 Cols) */}
-        <div className="lg:col-span-5 p-6 rounded-2xl bg-[#171615] border border-[#54433b]/40 space-y-4 shadow-lg flex flex-col justify-between">
+        <div className="lg:col-span-5 p-6 rounded-2xl bg-[#101620] border border-[#2a3547]/40 space-y-4 shadow-lg flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
               <h2 className="text-base font-bold text-white tracking-tight m-0">
@@ -261,21 +261,21 @@ export default function MovieDetailsPage() {
               <span className="text-4xl font-black text-white tracking-tight">
                 {ratingVal.toFixed(1)}
               </span>
-              <span className="text-xs text-[#a9a19a]">/ 10</span>
-              <span className="text-xs text-[#a9a19a] ml-3">
+              <span className="text-xs text-[#8d99aa]">/ 10</span>
+              <span className="text-xs text-[#8d99aa] ml-3">
                 ({movie.review_count || reviews.length} ratings)
               </span>
             </div>
 
             {/* Featured Quote */}
             {featuredReview && (
-              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-[#54433b]/30 space-y-1.5">
-                <p className="text-xs text-[#d5cec4] italic leading-relaxed">
+              <div className="p-3.5 rounded-xl bg-white/[0.02] border border-[#2a3547]/30 space-y-1.5">
+                <p className="text-xs text-[#d8dee8] italic leading-relaxed">
                   &ldquo;{featuredReview.review_text || 'A stunning piece of cinematic craftsmanship.'}&rdquo;
                 </p>
-                <div className="text-[11px] text-[#a9a19a] flex items-center justify-between pt-1">
+                <div className="text-[11px] text-[#8d99aa] flex items-center justify-between pt-1">
                   <span>{featuredReview.display_name}</span>
-                  <span className="text-[#ffb08d] font-bold">★ {Number(featuredReview.rating).toFixed(1)}</span>
+                  <span className="text-[#ff9b83] font-bold">★ {Number(featuredReview.rating).toFixed(1)}</span>
                 </div>
               </div>
             )}
@@ -283,15 +283,15 @@ export default function MovieDetailsPage() {
 
           {/* Member Reviews List with CineTrace Links */}
           <div className="space-y-2.5 pt-3 border-t border-white/[0.08]">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[1.5px] text-[#968f87]">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[1.5px] text-[#718096]">
               <span>Member Reviews ({reviews.length})</span>
-              <Link href={`/trace?movieId=${movie.movie_id}`} className="text-[#dd7058] hover:underline font-sans normal-case text-xs">
+              <Link href={`/trace?movieId=${movie.movie_id}`} className="text-[#ff6b57] hover:underline font-sans normal-case text-xs">
                 Trace reviews →
               </Link>
             </div>
 
             {reviews.length === 0 ? (
-              <div className="text-xs text-[#a9a19a] py-2">
+              <div className="text-xs text-[#8d99aa] py-2">
                 No critiques logged yet. Be the first to review this film.
               </div>
             ) : (
@@ -299,14 +299,14 @@ export default function MovieDetailsPage() {
                 {reviews.map((r) => {
                   const isSpoilerHidden = r.has_spoilers && !revealedSpoilers[r.review_id];
                   return (
-                    <div key={r.review_id} className="p-3 rounded-xl bg-white/[0.02] border border-[#54433b]/25 space-y-1 text-xs">
+                    <div key={r.review_id} className="p-3 rounded-xl bg-white/[0.02] border border-[#2a3547]/25 space-y-1 text-xs">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-white">{r.display_name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-[#ffb08d] font-bold">★ {Number(r.rating).toFixed(1)}</span>
+                          <span className="text-[#ff9b83] font-bold">★ {Number(r.rating).toFixed(1)}</span>
                           <Link
                             href={`/trace?movieId=${movie.movie_id}`}
-                            className="text-[10px] text-[#dd7058] hover:underline font-semibold flex items-center gap-0.5"
+                            className="text-[10px] text-[#ff6b57] hover:underline font-semibold flex items-center gap-0.5"
                             title="Trace review mutation in PostgreSQL"
                           >
                             <span>Trace →</span>
@@ -318,12 +318,12 @@ export default function MovieDetailsPage() {
                         <button
                           type="button"
                           onClick={() => setRevealedSpoilers(prev => ({ ...prev, [r.review_id]: true }))}
-                          className="w-full text-left p-2 rounded bg-black/30 text-[10px] text-[#a9a19a] hover:text-white transition-colors"
+                          className="w-full text-left p-2 rounded bg-black/30 text-[10px] text-[#8d99aa] hover:text-white transition-colors"
                         >
                           ⚠️ Contains spoilers. Click to reveal.
                         </button>
                       ) : (
-                        <p className="text-xs text-[#c8c3bb] leading-relaxed m-0">
+                        <p className="text-xs text-[#c3cbd7] leading-relaxed m-0">
                           {r.review_text || <em className="text-[#7f7360]">Rating-only entry.</em>}
                         </p>
                       )}

@@ -38,24 +38,27 @@ const config: Config = {
         black: "#000000",
         white: "#ffffff",
         cv: {
-          canvas: "#0c0b0b",
-          ink: "#0c0b0b",
-          shell: "#141311",
-          surface: "#171615",
-          "surface-2": "#211e1b",
-          sidebar: "#25201e",
-          raised: "#2d2723",
-          border: "#54433b",
+          canvas: "#06080d",
+          ink: "#06080d",
+          shell: "#0b0f16",
+          surface: "#101620",
+          "surface-2": "#121924",
+          sidebar: "#0d121b",
+          raised: "#192231",
+          border: "#2a3547",
           "border-subtle": "rgba(84, 67, 59, 0.35)",
-          text: "#f4eee6",
-          muted: "#b9aea4",
-          ember: "#dd7058",
-          coral: "#dd7058",
-          accent: "#dd7058",
-          cream: "#eee7dd",
-          moss: "#dd7058", // Map legacy moss to ember to eliminate green
-          vermilion: "#dd7058",
-          danger: "#e05555",
+          text: "#f7f8fb",
+          muted: "#9aa7b9",
+          ember: "#ff6b57",
+          coral: "#ff6b57",
+          accent: "#ff6b57",
+          cream: "#f7f8fb",
+          moss: "#ff6b57", // Map legacy moss to ember to eliminate green
+          vermilion: "#ff6b57",
+          danger: "#ff5c75",
+          violet: "#8b7cff",
+          cyan: "#61d8ff",
+          success: "#42d7a0",
         },
         gray: {
           50: "#f9fafb",
@@ -81,6 +84,7 @@ const config: Config = {
       animation: {
         "fade-in": "fadeIn 0.3s ease-out forwards",
         "slide-up": "slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "signal-pulse": "signalPulse 1.8s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
@@ -90,6 +94,10 @@ const config: Config = {
         slideUp: {
           "0%": { opacity: "0", transform: "translateY(16px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        signalPulse: {
+          "0%, 100%": { opacity: "0.45", transform: "scaleX(0.94)" },
+          "50%": { opacity: "1", transform: "scaleX(1)" },
         },
       },
     },

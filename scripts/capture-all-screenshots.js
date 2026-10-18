@@ -75,14 +75,7 @@ async function run() {
     // 5. Capture The Query Lens Drawer Open on Discover
     console.log('📸 Capturing: 10-query-lens-drawer-desktop.png');
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
-    const buttons = await page.$$('button');
-    for (const b of buttons) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Query Lens') || txt.includes('DBMS') || txt.includes('SQL')) {
-        await b.click();
-        break;
-      }
-    }
+    await page.click('button[aria-label="Open Query Lens"]');
     await new Promise(r => setTimeout(r, 800));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '10-query-lens-drawer-desktop.png') });
 
@@ -94,7 +87,7 @@ async function run() {
     const traceBtns = await page.$$('button');
     for (const b of traceBtns) {
       const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Save review & capture trace')) {
+      if (txt.includes('Save rating & capture trace')) {
         await b.click();
         break;
       }
@@ -157,7 +150,16 @@ async function run() {
       }
     }
     await new Promise(r => setTimeout(r, 1000));
+    const fullscreenButton = await page.$('button[aria-label="Enter fullscreen"]');
+    if (fullscreenButton) {
+      await fullscreenButton.click();
+      await page.waitForSelector('button[aria-label="Exit fullscreen"]');
+    }
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '11-projection-room-schema-desktop.png') });
+    if (fullscreenButton) {
+      await page.keyboard.press('Escape');
+      await new Promise(r => setTimeout(r, 300));
+    }
 
     // 11. Capture Activity Feed
     console.log('📸 Capturing: 04-activity-feed-desktop.png');
@@ -193,25 +195,13 @@ async function run() {
     console.log('📸 Capturing: 13-countercut-studio-desktop.png');
     await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Ensure taste_contradiction investigation is loaded
-    const tasteBtns = await page.$$('button');
-    for (const b of tasteBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Investigate My Taste')) {
-        await b.click();
-        console.log('  ⏳ Triggered taste contradiction investigation...');
-        await new Promise(r => setTimeout(r, 4000));
-        break;
-      }
-    }
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '13-countercut-studio-desktop.png') });
 
     // 17. Capture Countercut Studio Desktop - Opposing Critic Mode (Oppenheimer vs Elena Rostov)
     console.log('📸 Capturing: 15-countercut-opposing-desktop.png');
     await page.goto(`${BASE_URL}/countercut?movieId=5`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 4500));
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '15-countercut-opposing-desktop.png') });
 
     // 18. Capture Countercut Challenge Consent Modal
@@ -249,7 +239,7 @@ async function run() {
     console.log('📸 Capturing: 14-countercut-studio-mobile.png');
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
     await page.goto(`${BASE_URL}/countercut`, { waitUntil: 'networkidle0' });
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 12000));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '14-countercut-studio-mobile.png') });
 
     console.log('✨ All screenshots captured successfully in screenshots/!');

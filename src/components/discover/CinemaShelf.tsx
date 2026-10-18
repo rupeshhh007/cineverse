@@ -3,14 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Star, 
-  Play, 
-  ChevronLeft, 
-  ChevronRight, 
-  Sparkles, 
-  GitBranch, 
-  ArrowUpRight, 
+import {
+  Star,
+  Play,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  GitBranch,
+  ArrowUpRight,
   SlidersHorizontal,
   LayoutGrid,
   Layers,
@@ -80,11 +80,11 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
       {/* Shelf Header & View Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#dd7058] shadow-[0_0_8px_#dd7058]" />
-          <h2 className="text-lg font-bold text-[#f4eee6] tracking-tight m-0">
-            The Cinema Shelf
+          <div className="w-[3px] h-6 rounded-full bg-gradient-to-b from-[#ff6b57] to-[#8b7cff]" />
+          <h2 className="text-xl font-black text-[#f7f8fb] tracking-[-0.04em] m-0">
+            The after-hours shelf
           </h2>
-          <span className="text-xs font-mono text-[#a99c91]">
+          <span className="text-xs font-mono text-[#8b98aa]">
             / {movies.length} archived titles
           </span>
         </div>
@@ -92,22 +92,22 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
         {/* Controls: Mode Switcher & Navigation */}
         <div className="flex items-center gap-2">
           {viewMode === 'shelf' && (
-            <div className="flex items-center gap-1 bg-[#1a1816] border border-[#54433b] rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-[#1a1816] border border-[#2a3547] rounded-lg p-1">
               <button
                 type="button"
                 onClick={() => setSelectedIndex((prev) => (prev > 0 ? prev - 1 : movies.length - 1))}
-                className="w-7 h-7 flex items-center justify-center rounded text-[#a99c91] hover:text-white hover:bg-white/5 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded text-[#8b98aa] hover:text-white hover:bg-white/5 transition-colors"
                 aria-label="Previous film"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-[11px] font-mono text-[#f4eee6] px-2 font-semibold">
+              <span className="text-[11px] font-mono text-[#f7f8fb] px-2 font-semibold">
                 {selectedIndex + 1} / {movies.length}
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedIndex((prev) => (prev < movies.length - 1 ? prev + 1 : 0))}
-                className="w-7 h-7 flex items-center justify-center rounded text-[#a99c91] hover:text-white hover:bg-white/5 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded text-[#8b98aa] hover:text-white hover:bg-white/5 transition-colors"
                 aria-label="Next film"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -116,14 +116,14 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
           )}
 
           {/* Shelf vs Grid View Toggle */}
-          <div className="flex items-center bg-[#1a1816] border border-[#54433b] rounded-lg p-1 text-xs">
+          <div className="flex items-center bg-[#1a1816] border border-[#2a3547] rounded-lg p-1 text-xs">
             <button
               type="button"
               onClick={() => setViewMode('shelf')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
-                viewMode === 'shelf' 
-                  ? 'bg-[#dd7058] text-[#140e0c] font-bold shadow-sm' 
-                  : 'text-[#a99c91] hover:text-white'
+                viewMode === 'shelf'
+                  ? 'bg-[#ff6b57] text-[#070a0f] font-bold shadow-sm'
+                  : 'text-[#8b98aa] hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -133,9 +133,9 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
               type="button"
               onClick={() => setViewMode('grid')}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
-                viewMode === 'grid' 
-                  ? 'bg-[#dd7058] text-[#140e0c] font-bold shadow-sm' 
-                  : 'text-[#a99c91] hover:text-white'
+                viewMode === 'grid'
+                  ? 'bg-[#ff6b57] text-[#070a0f] font-bold shadow-sm'
+                  : 'text-[#8b98aa] hover:text-white'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -149,15 +149,15 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
       {viewMode === 'shelf' ? (
         <div className="space-y-6">
           {/* 3D Perspective Card Carousel Track */}
-          <div 
+          <div
             ref={shelfContainerRef}
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
-            className="relative py-6 px-4 bg-gradient-to-b from-[#1b1715]/80 via-[#141211]/90 to-[#100f0e] border border-[#54433b]/60 rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+            className="relative py-7 px-4 bg-[linear-gradient(180deg,rgba(18,25,36,0.82),rgba(6,8,13,0.96))] border border-white/[0.09] rounded-[14px] overflow-hidden cursor-grab active:cursor-grabbing shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
             style={{ perspective: '1200px' }}
           >
             {/* Ambient Projector Light Cone Behind Focus */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-40 bg-[#dd7058]/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[34rem] h-40 bg-[radial-gradient(ellipse,rgba(97,216,255,0.10),rgba(139,124,255,0.05)_42%,transparent_72%)] blur-2xl pointer-events-none" />
 
             <div className="flex items-center justify-center gap-3 sm:gap-5 min-h-[260px] sm:min-h-[300px]">
               {movies.map((movie, idx) => {
@@ -192,8 +192,8 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                     }}
                     className={`relative w-[130px] sm:w-[160px] md:w-[180px] aspect-[2/3] shrink-0 rounded-xl overflow-hidden cursor-pointer transition-shadow ${
                       isSelected
-                        ? 'ring-2 ring-[#dd7058] shadow-[0_18px_45px_rgba(221,112,88,0.25)]'
-                        : 'border border-[#54433b]/40 hover:border-white/30'
+                        ? 'ring-2 ring-[#ff6b57] shadow-[0_20px_55px_rgba(255,107,87,0.22)]'
+                        : 'border border-[#2a3547]/40 hover:border-white/30'
                     }`}
                     style={{
                       transformStyle: 'preserve-3d',
@@ -217,7 +217,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                         {movie.title}
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-[#cfc2b6] mt-0.5 font-mono">
-                        <span className="text-[#dd7058] font-bold">
+                        <span className="text-[#ff6b57] font-bold">
                           ★ {Number(movie.avg_rating || 0).toFixed(1)}
                         </span>
                         <span>{movie.release_date ? new Date(movie.release_date).getFullYear() : 'Cinema'}</span>
@@ -226,7 +226,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
 
                     {/* Focus Marker */}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#dd7058] text-[#140e0c] text-[9px] font-mono font-black tracking-wider uppercase shadow-md">
+                      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-[#ff6b57] text-[#070a0f] text-[9px] font-mono font-black tracking-wider uppercase shadow-md">
                         ACTIVE
                       </div>
                     )}
@@ -254,7 +254,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2 }}
-                className="p-5 sm:p-7 rounded-2xl bg-[#171615] border border-[#54433b] shadow-xl relative overflow-hidden"
+                className="p-5 sm:p-7 rounded-2xl bg-[#101620] border border-[#2a3547] shadow-xl relative overflow-hidden"
               >
                 {/* Background Artwork Watermark */}
                 <div className="absolute top-0 right-0 w-2/3 h-full opacity-10 pointer-events-none overflow-hidden">
@@ -263,18 +263,18 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                     alt=""
                     className="w-full h-full object-cover object-right filter blur-sm"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#171615]/80 to-[#171615]" />
+                  <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#101620]/80 to-[#101620]" />
                 </div>
 
                 <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                   {/* Left Column: Essential Meta & Ratings */}
                   <div className="md:col-span-8 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#dd7058]/15 border border-[#dd7058]/30 text-[#dd7058] font-bold">
+                      <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-[#ff6b57]/15 border border-[#ff6b57]/30 text-[#ff6b57] font-bold">
                         SELECTED SCREENING
                       </span>
                       {selectedMovie.genres && selectedMovie.genres.length > 0 && (
-                        <span className="text-[11px] font-mono text-[#a99c91]">
+                        <span className="text-[11px] font-mono text-[#8b98aa]">
                           {selectedMovie.genres.map((g) => g.name).join(' • ')}
                         </span>
                       )}
@@ -285,7 +285,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                     </h3>
 
                     <div className="flex flex-wrap items-center gap-4 text-xs text-[#cfc2b6] font-mono">
-                      <div className="flex items-center gap-1 text-[#dd7058] font-bold">
+                      <div className="flex items-center gap-1 text-[#ff6b57] font-bold">
                         <Star className="w-3.5 h-3.5 fill-current" />
                         <span>{Number(selectedMovie.avg_rating || 0).toFixed(1)} / 10</span>
                       </div>
@@ -308,7 +308,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                     </div>
 
                     {selectedMovie.overview && (
-                      <p className="text-xs sm:text-sm text-[#d5cec4] leading-relaxed max-w-2xl">
+                      <p className="text-xs sm:text-sm text-[#d8dee8] leading-relaxed max-w-2xl">
                         {selectedMovie.overview}
                       </p>
                     )}
@@ -317,7 +317,7 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                     <div className="flex flex-wrap items-center gap-2.5 pt-2">
                       <Link
                         href={`/movies/${selectedMovie.movie_id}`}
-                        className="px-4 py-2.5 rounded-xl bg-[#dd7058] hover:bg-[#e47d66] text-[#16100e] text-xs font-bold transition-colors shadow-md flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl bg-[#ff6b57] hover:bg-[#e47d66] text-[#16100e] text-xs font-bold transition-colors shadow-md flex items-center gap-1.5"
                       >
                         <Film className="w-3.5 h-3.5" />
                         <span>View Film Archive →</span>
@@ -325,15 +325,15 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
 
                       <Link
                         href={`/countercut?movieId=${selectedMovie.movie_id}`}
-                        className="px-4 py-2.5 rounded-xl bg-[#221f1c] hover:bg-[#2b2723] border border-[#54433b] hover:border-[#dd7058] text-[#f4eee6] text-xs font-semibold transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl bg-[#221f1c] hover:bg-[#2b2723] border border-[#2a3547] hover:border-[#ff6b57] text-[#f7f8fb] text-xs font-semibold transition-colors flex items-center gap-1.5"
                       >
-                        <Sparkles className="w-3.5 h-3.5 text-[#dd7058]" />
+                        <Sparkles className="w-3.5 h-3.5 text-[#ff6b57]" />
                         <span>Investigate in Countercut</span>
                       </Link>
 
                       <Link
                         href={`/trace?movieId=${selectedMovie.movie_id}`}
-                        className="px-4 py-2.5 rounded-xl bg-[#221f1c] hover:bg-[#2b2723] border border-[#54433b] hover:border-emerald-500/50 text-[#f4eee6] text-xs font-semibold transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2.5 rounded-xl bg-[#221f1c] hover:bg-[#2b2723] border border-[#2a3547] hover:border-emerald-500/50 text-[#f7f8fb] text-xs font-semibold transition-colors flex items-center gap-1.5"
                       >
                         <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
                         <span>CineTrace Mutation</span>
@@ -353,30 +353,30 @@ export default function CinemaShelf({ movies, onOpenTrailer }: CinemaShelfProps)
                   </div>
 
                   {/* Right Column: Database Provenance Facts */}
-                  <div className="md:col-span-4 p-4 rounded-xl bg-[#201d1a] border border-[#54433b]/80 space-y-3">
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#dd7058] font-bold">
+                  <div className="md:col-span-4 p-4 rounded-xl bg-[#201d1a] border border-[#2a3547]/80 space-y-3">
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#ff6b57] font-bold">
                       DATABASE PROVENANCE
                     </div>
 
                     <div className="space-y-2 text-xs">
                       <div className="flex items-center justify-between py-1 border-b border-white/5">
-                        <span className="text-[#a99c91]">Internal Movie ID</span>
+                        <span className="text-[#8b98aa]">Internal Movie ID</span>
                         <span className="font-mono text-white">#{selectedMovie.movie_id}</span>
                       </div>
                       <div className="flex items-center justify-between py-1 border-b border-white/5">
-                        <span className="text-[#a99c91]">Trigger-Cached Avg</span>
-                        <span className="font-mono text-[#dd7058] font-bold">
+                        <span className="text-[#8b98aa]">Trigger-Cached Avg</span>
+                        <span className="font-mono text-[#ff6b57] font-bold">
                           {Number(selectedMovie.avg_rating || 0).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-1 border-b border-white/5">
-                        <span className="text-[#a99c91]">Review Audit Total</span>
+                        <span className="text-[#8b98aa]">Review Audit Total</span>
                         <span className="font-mono text-white">
                           {selectedMovie.review_count || 0} rows
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-1">
-                        <span className="text-[#a99c91]">Bayesian Prior Status</span>
+                        <span className="text-[#8b98aa]">Bayesian Prior Status</span>
                         <span className="font-mono text-emerald-400">ACTIVE IN VIEW</span>
                       </div>
                     </div>

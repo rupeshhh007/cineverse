@@ -46,48 +46,48 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   // Loading state
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-[#0c0b0b] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#54433b] border-t-[#dd7058] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#06080d] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#2a3547] border-t-[#ff6b57] rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0c0b0b] text-[#f4eee6] p-1.5 sm:p-4 lg:p-6 flex flex-col items-center justify-center font-sans selection:bg-[#655149] selection:text-white relative">
-      {/* Warm Ambient Canvas Lighting */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0" 
+    <div className="min-h-screen bg-[#06080d] text-[#f7f8fb] p-0 sm:p-3 lg:p-4 flex flex-col items-center justify-center font-sans selection:bg-[#ff6b57] selection:text-[#070a0f] relative overflow-hidden">
+      {/* Projector beams and chromatic edge light */}
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
         style={{
-          backgroundImage: 'radial-gradient(ellipse at 85% 8%, rgba(58, 38, 32, 0.45), transparent 46%), radial-gradient(ellipse at 13% 95%, rgba(45, 37, 28, 0.35), transparent 45%)'
+          backgroundImage: 'radial-gradient(ellipse at 84% -8%, rgba(97,216,255,0.10), transparent 38%), radial-gradient(ellipse at 6% 108%, rgba(139,124,255,0.11), transparent 42%), linear-gradient(112deg, transparent 62%, rgba(255,107,87,0.035) 80%, transparent 92%)'
         }}
       />
 
       {/* Contained Framed Application Workspace */}
-      <div className="w-full max-w-[1520px] h-[calc(100vh-0.75rem)] sm:h-[calc(100vh-2rem)] lg:h-[calc(100vh-3rem)] max-h-[1000px] bg-gradient-to-r from-[#181716] via-[#10100f] to-[#1b1714] rounded-[24px] sm:rounded-[28px] border border-[#54433c] flex flex-col lg:flex-row overflow-hidden shadow-[0_27px_95px_rgba(0,0,0,0.85)] relative z-10">
-        
+      <div className="w-full max-w-[1600px] h-screen sm:h-[calc(100vh-1.5rem)] lg:h-[calc(100vh-2rem)] max-h-[1040px] bg-[linear-gradient(115deg,#0d121b_0%,#080c12_48%,#0a0f17_100%)] rounded-none sm:rounded-[24px] border-0 sm:border border-white/[0.11] flex flex-col lg:flex-row overflow-hidden shadow-[0_32px_120px_rgba(0,0,0,0.72)] relative z-10">
+
         {/* Desktop Left Rail Sidebar */}
-        <div className="hidden lg:flex w-[230px] xl:w-[240px] bg-gradient-to-b from-[#292321] via-[#1b1a18] to-[#241d1a] border-r border-[#4e443e]/40 shrink-0 p-5 overflow-y-auto">
+        <div className="hidden lg:flex w-[224px] xl:w-[236px] bg-[#0b1018]/95 border-r border-white/[0.08] shrink-0 p-5 overflow-y-auto">
           <Sidebar onOpenSearch={() => setIsSearchOpen(true)} />
         </div>
 
         {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex bg-black/80 backdrop-blur-md animate-fade-in">
-            <div className="w-[280px] max-w-[80vw] h-full bg-[#241d1a] border-r border-[#54433c] p-5 overflow-y-auto relative">
+            <div className="w-[280px] max-w-[84vw] h-full bg-[#0b1018] border-r border-white/[0.10] p-5 overflow-y-auto relative">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute top-4 right-4 p-2 text-[#a9a19a] hover:text-[#f4eee6] rounded-lg"
+                className="absolute top-4 right-4 p-2 text-[#8d99aa] hover:text-[#f7f8fb] rounded-lg"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
               </button>
-              <Sidebar 
+              <Sidebar
                 onOpenSearch={() => { setIsMobileMenuOpen(false); setIsSearchOpen(true); }}
                 onCloseMobile={() => setIsMobileMenuOpen(false)}
               />
             </div>
-            <div 
+            <div
               className="flex-1"
               onClick={() => setIsMobileMenuOpen(false)}
             />
@@ -95,8 +95,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main Screening Content Area */}
-        <main className="flex-1 h-full overflow-y-auto bg-transparent px-4 sm:px-7 lg:px-9 py-4 sm:py-5 lg:py-6 flex flex-col relative">
-          <TopBar 
+        <main className="flex-1 h-full overflow-y-auto bg-transparent px-4 sm:px-7 lg:px-8 xl:px-9 py-4 sm:py-5 flex flex-col relative">
+          <TopBar
             onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
             onOpenSearch={() => setIsSearchOpen(true)}
           />
@@ -108,9 +108,9 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Global Command Palette & Lens */}
-      <CommandPalette 
-        isOpen={isSearchOpen} 
-        onClose={() => setIsSearchOpen(false)} 
+      <CommandPalette
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
       />
       <DbmsInspectorDrawer />
     </div>

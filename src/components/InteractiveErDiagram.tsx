@@ -1,19 +1,25 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Key, 
-  Link2, 
-  Terminal, 
-  Layers, 
-  Database,
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Key,
+  Link2,
+  Terminal,
   Search,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
   Copy,
   Check,
-  Table as TableIcon
+  Table as TableIcon,
+  Maximize2,
+  Minimize2,
+  Move,
+  Route,
+  Network,
+  ChevronRight,
+  X,
+  Crosshair,
+  MousePointer2,
 } from 'lucide-react';
 
 export interface TableNode {
@@ -33,7 +39,7 @@ export const TABLES: TableNode[] = [
     name: 'users',
     x: 68,
     y: 38,
-    color: '#dd7058', // Moss
+    color: '#ff6b57', // Moss
     description: 'Core member profiles containing authentication credentials, bio, and visual assets.',
     columns: [
       { name: 'user_id', type: 'SERIAL', key: 'PK' },
@@ -63,7 +69,7 @@ export const TABLES: TableNode[] = [
     name: 'movies',
     x: 36,
     y: 35,
-    color: '#dd7058',
+    color: '#ff6b57',
     description: 'Film registry storing release dates, runtime, director, poster URLs, and trigger-cached aggregate ratings.',
     columns: [
       { name: 'movie_id', type: 'SERIAL', key: 'PK' },
@@ -185,7 +191,7 @@ export const TABLES: TableNode[] = [
     name: 'reviews',
     x: 52,
     y: 10,
-    color: '#dd7058',
+    color: '#ff6b57',
     description: 'Reviews and 10-point ratings submitted by users. Triggers recalculate movie stats.',
     columns: [
       { name: 'review_id', type: 'SERIAL', key: 'PK' },
@@ -216,7 +222,7 @@ export const TABLES: TableNode[] = [
     name: 'review_likes',
     x: 68,
     y: 10,
-    color: '#dd7058',
+    color: '#ff6b57',
     description: 'Audit bridge recording helpful votes cast by users on member reviews.',
     columns: [
       { name: 'user_id', type: 'INTEGER', key: 'PK, FK' },
@@ -284,7 +290,7 @@ export const TABLES: TableNode[] = [
     name: 'follows',
     x: 84,
     y: 38,
-    color: '#dd7058',
+    color: '#ff6b57',
     description: 'Directed graph relationship mapping follower/following edges between users.',
     columns: [
       { name: 'follower_id', type: 'INTEGER', key: 'PK, FK' },
@@ -345,7 +351,7 @@ export const TABLES: TableNode[] = [
     name: 'db_action_traces',
     x: 84,
     y: 10,
-    color: '#dd7058',
+    color: '#ff6b57',
     description: 'CineTrace transaction lineage registry capturing authenticated mutation events, trigger executions, and state deltas.',
     columns: [
       { name: 'trace_id', type: 'SERIAL', key: 'PK' },
@@ -398,508 +404,290 @@ export const CONNECTIONS: Connection[] = [
   { from: 'db_action_traces', to: 'users', key: 'user_id', type: '1:N' },
 ];
 
+const CANVAS_WIDTH = 1240;
+const CANVAS_HEIGHT = 740;
+const NODE_WIDTH = 174;
+const NODE_HEIGHT = 108;
+const TABLE_BY_ID = new Map(TABLES.map(table => [table.id, table]));
+
+type InspectorTab = 'columns' | 'relationships' | 'ddl';
+type ViewMode = 'explore' | 'impact';
+
+function edgePath(fromId: string, toId: string) {
+  const from = TABLE_BY_ID.get(fromId);
+  const to = TABLE_BY_ID.get(toId);
+  if (!from || !to) return '';
+
+  const fromX = (from.x / 100) * CANVAS_WIDTH + NODE_WIDTH / 2;
+  const fromY = (from.y / 100) * CANVAS_HEIGHT + NODE_HEIGHT / 2;
+  const toX = (to.x / 100) * CANVAS_WIDTH + NODE_WIDTH / 2;
+  const toY = (to.y / 100) * CANVAS_HEIGHT + NODE_HEIGHT / 2;
+  const horizontal = Math.abs(toX - fromX) > Math.abs(toY - fromY);
+  const sx = horizontal ? fromX + (toX > fromX ? NODE_WIDTH / 2 : -NODE_WIDTH / 2) : fromX;
+  const sy = horizontal ? fromY : fromY + (toY > fromY ? NODE_HEIGHT / 2 : -NODE_HEIGHT / 2);
+  const tx = horizontal ? toX + (toX > fromX ? -NODE_WIDTH / 2 : NODE_WIDTH / 2) : toX;
+  const ty = horizontal ? toY : toY + (toY > fromY ? -NODE_HEIGHT / 2 : NODE_HEIGHT / 2);
+
+  if (horizontal) {
+    const bend = Math.max(34, Math.abs(tx - sx) * 0.44);
+    return `M ${sx} ${sy} C ${sx + (tx > sx ? bend : -bend)} ${sy}, ${tx + (tx > sx ? -bend : bend)} ${ty}, ${tx} ${ty}`;
+  }
+  const bend = Math.max(28, Math.abs(ty - sy) * 0.46);
+  return `M ${sx} ${sy} C ${sx} ${sy + (ty > sy ? bend : -bend)}, ${tx} ${ty + (ty > sy ? -bend : bend)}, ${tx} ${ty}`;
+}
+
 export default function InteractiveErDiagram() {
-  const [selectedTable, setSelectedTable] = useState<TableNode>(TABLES[1]); // 'movies' default
+  const observatoryRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+  const panRef = useRef({ x: -45, y: -18 });
+  const [selectedTable, setSelectedTable] = useState<TableNode>(TABLES[1]);
   const [hoveredTable, setHoveredTable] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState(86);
+  const [pan, setPan] = useState({ x: -45, y: -18 });
+  const [viewMode, setViewMode] = useState<ViewMode>('explore');
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('columns');
   const [copiedDdl, setCopiedDdl] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
-  // Dimensions
-  const canvasWidth = 1240;
-  const canvasHeight = 740;
-  const cardWidth = 168;
-  const cardHeight = 160;
+  useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(document.fullscreenElement === observatoryRef.current);
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleMotionPreference = () => setReduceMotion(motionQuery.matches);
+    handleMotionPreference();
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    motionQuery.addEventListener('change', handleMotionPreference);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      motionQuery.removeEventListener('change', handleMotionPreference);
+    };
+  }, []);
 
-  const filteredTables = useMemo(() => {
-    if (!searchQuery.trim()) return TABLES;
-    const q = searchQuery.toLowerCase();
-    return TABLES.filter(t => t.name.toLowerCase().includes(q) || t.columns.some(c => c.name.toLowerCase().includes(q)));
+  const matches = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return new Set(TABLES.map(table => table.id));
+    return new Set(TABLES.filter(table => table.name.toLowerCase().includes(query) || table.columns.some(column => column.name.toLowerCase().includes(query))).map(table => table.id));
   }, [searchQuery]);
 
-  const getEdgeCoordinates = (fromId: string, toId: string) => {
-    const from = TABLES.find((t) => t.id === fromId);
-    const to = TABLES.find((t) => t.id === toId);
-    if (!from || !to) return { sx: 0, sy: 0, tx: 0, ty: 0 };
+  const connectedIds = useMemo(() => {
+    const ids = new Set([selectedTable.id]);
+    CONNECTIONS.forEach(connection => {
+      if (connection.from === selectedTable.id) ids.add(connection.to);
+      if (connection.to === selectedTable.id) ids.add(connection.from);
+    });
+    return ids;
+  }, [selectedTable]);
 
-    const sx_c = (from.x / 100) * canvasWidth + cardWidth / 2;
-    const sy_c = (from.y / 100) * canvasHeight + cardHeight / 3;
-    const tx_c = (to.x / 100) * canvasWidth + cardWidth / 2;
-    const ty_c = (to.y / 100) * canvasHeight + cardHeight / 3;
+  const outgoing = useMemo(() => CONNECTIONS.filter(connection => connection.from === selectedTable.id), [selectedTable]);
+  const incoming = useMemo(() => CONNECTIONS.filter(connection => connection.to === selectedTable.id), [selectedTable]);
 
-    const dx = tx_c - sx_c;
-    const dy = ty_c - sy_c;
+  const focusTable = (table: TableNode) => {
+    setSelectedTable(table);
+    setInspectorTab('columns');
+  };
 
-    let sx = sx_c;
-    let sy = sy_c;
-    let tx = tx_c;
-    let ty = ty_c;
+  const resetView = () => {
+    setZoomLevel(isFullscreen ? 95 : 86);
+    panRef.current = { x: -45, y: -18 };
+    setPan(panRef.current);
+  };
 
-    if (Math.abs(dx) > Math.abs(dy)) {
-      if (dx > 0) {
-        sx = (from.x / 100) * canvasWidth + cardWidth;
-        tx = (to.x / 100) * canvasWidth;
-      } else {
-        sx = (from.x / 100) * canvasWidth;
-        tx = (to.x / 100) * canvasWidth + cardWidth;
-      }
+  const toggleFullscreen = async () => {
+    if (!observatoryRef.current) return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
     } else {
-      if (dy > 0) {
-        sy = (from.y / 100) * canvasHeight + 110;
-        ty = (to.y / 100) * canvasHeight;
-      } else {
-        sy = (from.y / 100) * canvasHeight;
-        ty = (to.y / 100) * canvasHeight + 110;
-      }
+      await observatoryRef.current.requestFullscreen();
+      setZoomLevel(95);
+      panRef.current = { x: 0, y: 0 };
+      setPan(panRef.current);
     }
-
-    return { sx, sy, tx, ty };
   };
 
-  const isRelated = (table1: string, table2: string) => {
-    return CONNECTIONS.some(
-      (c) => 
-        (c.from === table1 && c.to === table2) || 
-        (c.from === table2 && c.to === table1)
-    );
-  };
-
-  const handleCopyDdl = () => {
-    navigator.clipboard.writeText(selectedTable.ddl);
+  const handleCopyDdl = async () => {
+    await navigator.clipboard.writeText(selectedTable.ddl);
     setCopiedDdl(true);
-    setTimeout(() => setCopiedDdl(false), 1500);
+    window.setTimeout(() => setCopiedDdl(false), 1500);
   };
 
-  // Find foreign keys for selected table
-  const selectedTableFks = useMemo(() => {
-    return CONNECTIONS.filter(c => c.from === selectedTable.id).map(c => ({
-      column: c.key,
-      targetTable: c.to,
-      type: c.type
-    }));
-  }, [selectedTable]);
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest('[data-schema-node], button, input')) return;
+    dragRef.current = { x: event.clientX, y: event.clientY, panX: panRef.current.x, panY: panRef.current.y };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsPanning(true);
+  };
 
-  // Find incoming relations (referencing tables)
-  const incomingFks = useMemo(() => {
-    return CONNECTIONS.filter(c => c.to === selectedTable.id).map(c => ({
-      sourceTable: c.from,
-      column: c.key,
-      type: c.type
-    }));
-  }, [selectedTable]);
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPanning) return;
+    panRef.current = { x: dragRef.current.panX + event.clientX - dragRef.current.x, y: dragRef.current.panY + event.clientY - dragRef.current.y };
+    if (canvasRef.current) {
+      canvasRef.current.style.transform = `translate3d(${panRef.current.x}px, ${panRef.current.y}px, 0) scale(${zoomLevel / 100})`;
+    }
+  };
+
+  const stopPanning = () => {
+    if (isPanning) setPan(panRef.current);
+    setIsPanning(false);
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    setZoomLevel(current => Math.min(135, Math.max(58, current - event.deltaY * 0.08)));
+  };
+
+  const canvasHeightClass = isFullscreen ? 'h-[calc(100vh-154px)]' : 'lg:h-[650px]';
 
   return (
-    <div className="space-y-4">
-      {/* Visual Canvas Subheader */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-cv-shell border border-cv-border/30">
-        <div>
-          <div className="text-[11px] font-mono uppercase tracking-widest text-cv-muted">
-            The Projection Room / Relational Architecture
+    <div ref={observatoryRef} className={`relative overflow-hidden bg-[#070b11] text-cv-text ${isFullscreen ? 'h-screen w-screen' : 'min-h-[760px] rounded-xl'}`}>
+      <header className="relative z-30 border-b border-white/[0.09] bg-[#090e16]/95 px-4 py-4 backdrop-blur-xl xl:px-5">
+        <div className={`flex flex-col gap-4 ${isFullscreen ? 'xl:flex-row xl:items-center xl:justify-between' : '2xl:flex-row 2xl:items-center 2xl:justify-between'}`}>
+          <div className="min-w-0 shrink-0">
+            <div className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#61d8ff]"><Network className="h-3.5 w-3.5" /> Relational observatory</div>
+            <h2 className="whitespace-nowrap text-xl font-bold tracking-[-0.025em] text-white md:text-2xl">Schema Relationship Map</h2>
+            <p className="mt-1 text-xs text-[#8190a3]">Follow a table. See every dependency light up.</p>
           </div>
-          <h2 className="text-lg font-serif font-bold text-cv-text mt-0.5">
-            Schema Relationship Map
-          </h2>
-          <p className="text-xs text-cv-muted">
-            Foreign-key connections across the 3NF relational model. Select a table to inspect columns, constraints, and dependencies.
-          </p>
-        </div>
 
-        {/* Canvas Toolbar */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center bg-cv-surface border border-cv-border/40 rounded-xl p-1 text-xs">
-            <button
-              onClick={() => setZoomLevel(prev => Math.max(70, prev - 10))}
-              className="p-1.5 hover:bg-cv-shell rounded-lg text-cv-muted hover:text-cv-text transition-colors"
-              title="Zoom out"
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <span className="px-2 font-mono text-[11px] text-cv-text select-none">
-              {zoomLevel}%
-            </span>
-            <button
-              onClick={() => setZoomLevel(prev => Math.min(140, prev + 10))}
-              className="p-1.5 hover:bg-cv-shell rounded-lg text-cv-muted hover:text-cv-text transition-colors"
-              title="Zoom in"
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <button
-            onClick={() => setZoomLevel(100)}
-            className="p-2 bg-cv-surface border border-cv-border/40 hover:bg-cv-shell rounded-xl text-cv-muted hover:text-cv-text text-xs transition-colors flex items-center gap-1.5"
-            title="Reset zoom"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline text-[11px]">Reset</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 3-Column Layout: Left Table Rail | Center Interactive Canvas | Right Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        
-        {/* Column 1: Left Table Rail (2.5 cols on lg) */}
-        <div className="lg:col-span-3 bg-cv-shell border border-cv-border/30 rounded-2xl p-4 flex flex-col space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-cv-border/20">
-            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-cv-text">
-              <TableIcon className="w-3.5 h-3.5 text-cv-moss" />
-              <span>Tables</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 items-center border border-white/[0.1] bg-[#0d131d] p-1">
+              {(['explore', 'impact'] as ViewMode[]).map(mode => (
+                <button key={mode} type="button" onClick={() => setViewMode(mode)} aria-pressed={viewMode === mode} className={`flex h-7 items-center gap-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-all ${viewMode === mode ? 'bg-[#ff6b57] text-[#090b10] shadow-[0_0_22px_rgba(255,107,87,0.25)]' : 'text-[#8391a5] hover:text-white'}`}>
+                  {mode === 'explore' ? <MousePointer2 className="h-3 w-3" /> : <Route className="h-3 w-3" />}
+                  {mode === 'explore' ? 'Explore' : 'Impact path'}
+                </button>
+              ))}
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cv-surface border border-cv-border/30 text-cv-muted">
-              {TABLES.length} tables
-            </span>
+
+            <label className="relative min-w-[210px] flex-1 xl:w-[250px] xl:flex-none">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#718096]" />
+              <input value={searchQuery} onChange={event => setSearchQuery(event.target.value)} placeholder="Search tables or columns…" className="h-9 w-full border border-white/[0.11] bg-[#0d131d] pl-9 pr-8 font-mono text-[11px] text-white outline-none transition-colors placeholder:text-[#5f6d80] focus:border-[#61d8ff]/70" />
+              {searchQuery && <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#718096] hover:text-white"><X className="h-3 w-3" /></button>}
+            </label>
+
+            <div className="flex h-9 items-center border border-white/[0.1] bg-[#0d131d]">
+              <button type="button" onClick={() => setZoomLevel(value => Math.max(58, value - 10))} aria-label="Zoom out" className="grid h-full w-9 place-items-center text-[#8391a5] hover:bg-white/[0.04] hover:text-white"><ZoomOut className="h-3.5 w-3.5" /></button>
+              <span className="min-w-14 border-x border-white/[0.08] text-center font-mono text-[10px] text-white">{Math.round(zoomLevel)}%</span>
+              <button type="button" onClick={() => setZoomLevel(value => Math.min(135, value + 10))} aria-label="Zoom in" className="grid h-full w-9 place-items-center text-[#8391a5] hover:bg-white/[0.04] hover:text-white"><ZoomIn className="h-3.5 w-3.5" /></button>
+            </div>
+
+            <button type="button" onClick={resetView} aria-label="Reset canvas view" className="grid h-9 w-9 place-items-center border border-white/[0.1] bg-[#0d131d] text-[#8391a5] hover:border-white/[0.2] hover:text-white"><Crosshair className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} className="flex h-9 items-center gap-2 border border-[#ff6b57]/60 bg-[#ff6b57]/10 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#ff8f7f] transition-all hover:bg-[#ff6b57] hover:text-[#090b10]">
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}<span className="hidden sm:inline">{isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}</span>
+            </button>
           </div>
+        </div>
+      </header>
 
-          {/* Search Table */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-cv-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter tables & cols..."
-              className="w-full bg-cv-surface border border-cv-border/40 rounded-xl pl-8 pr-3 py-1.5 text-xs text-cv-text placeholder-cv-muted/60 focus:outline-none focus:border-cv-moss transition-colors font-mono"
-            />
+      <div className={`grid min-h-0 lg:grid-cols-[190px_minmax(0,1fr)_270px] ${canvasHeightClass}`}>
+        <aside className="hidden min-h-0 border-r border-white/[0.09] bg-[#090e16] lg:flex lg:flex-col">
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+            <span className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#aab5c5]"><TableIcon className="h-3.5 w-3.5 text-[#61d8ff]" /> Tables</span>
+            <span className="font-mono text-[9px] text-[#66758a]">{TABLES.length} total</span>
           </div>
-
-          {/* Table List */}
-          <div className="flex-1 space-y-1.5 overflow-y-auto max-h-[580px] pr-1">
-            {filteredTables.map((table) => {
-              const isSelected = selectedTable.id === table.id;
-              const isHovered = hoveredTable === table.id;
-              const isConn = isRelated(selectedTable.id, table.id);
-
+          <div className="flex-1 overflow-y-auto p-2.5">
+            {TABLES.filter(table => matches.has(table.id)).map(table => {
+              const selected = selectedTable.id === table.id;
+              const related = connectedIds.has(table.id) && !selected;
               return (
-                <button
-                  key={table.id}
-                  onClick={() => setSelectedTable(table)}
-                  onMouseEnter={() => setHoveredTable(table.id)}
-                  onMouseLeave={() => setHoveredTable(null)}
-                  className={`w-full text-left p-2.5 rounded-xl transition-all border flex items-center justify-between ${
-                    isSelected
-                      ? 'bg-cv-surface border-cv-moss text-cv-text shadow-sm'
-                      : isHovered
-                      ? 'bg-cv-surface/60 border-cv-border text-cv-text'
-                      : isConn
-                      ? 'bg-cv-surface/30 border-cv-border/40 text-cv-text/90'
-                      : 'bg-cv-shell/50 border-transparent text-cv-muted hover:text-cv-text hover:bg-cv-surface/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: table.color }}
-                    />
-                    <span className="font-mono text-xs font-semibold truncate">
-                      {table.name}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-cv-muted shrink-0">
-                    {table.columns.length} cols
-                  </span>
+                <button key={table.id} type="button" onClick={() => focusTable(table)} onMouseEnter={() => setHoveredTable(table.id)} onMouseLeave={() => setHoveredTable(null)} className={`group mb-0.5 flex w-full items-center gap-2.5 border-l-2 px-2.5 py-2 text-left transition-all ${selected ? 'border-[#ff6b57] bg-[#ff6b57]/10 text-white' : related ? 'border-[#61d8ff]/40 text-[#b6c7dc] hover:bg-white/[0.035]' : 'border-transparent text-[#758297] hover:bg-white/[0.035] hover:text-white'}`}>
+                  <TableIcon className={`h-3.5 w-3.5 shrink-0 ${selected ? 'text-[#ff6b57]' : related ? 'text-[#61d8ff]' : 'text-[#536174]'}`} />
+                  <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-semibold">{table.name}</span><span className="font-mono text-[8px] text-[#5f6d80]">{table.columns.length}</span>
                 </button>
               );
             })}
+            {matches.size === 0 && <div className="px-3 py-8 text-center font-mono text-[10px] text-[#66758a]">No schema match.</div>}
           </div>
-        </div>
-
-        {/* Column 2: Center Interactive SVG Canvas (6 cols on lg) */}
-        <div className="lg:col-span-6 bg-cv-surface-2 border border-cv-border/40 rounded-2xl overflow-hidden relative flex flex-col shadow-inner">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-cv-shell/70 border-b border-cv-border/30 z-20">
-            <div className="flex items-center gap-2 text-[11px] font-mono text-cv-muted">
-              <Layers className="w-3.5 h-3.5 text-cv-moss" />
-              <span>3NF Physical Topology (Crow&apos;s Foot)</span>
-            </div>
-            <div className="text-[10px] font-mono text-cv-muted/80 flex items-center gap-2">
-              <span>| = One</span>
-              <span>⋿ = Many</span>
-            </div>
+          <div className="border-t border-white/[0.08] p-3 font-mono text-[9px] leading-5 text-[#5f6d80]">
+            <div className="flex items-center gap-2"><Move className="h-3 w-3" /> Drag empty space to pan</div>
+            <div className="flex items-center gap-2"><ZoomIn className="h-3 w-3" /> Ctrl / ⌘ + wheel to zoom</div>
           </div>
+        </aside>
 
-          {/* Scrollable Canvas Box */}
-          <div className="w-full overflow-auto bg-[#0d130d] p-4 flex-1 min-h-[580px]">
-            <div 
-              style={{ 
-                width: `${canvasWidth}px`, 
-                height: `${canvasHeight}px`,
-                transform: `scale(${zoomLevel / 100})`,
-                transformOrigin: 'top left'
-              }} 
-              className="relative select-none transition-transform duration-150"
-            >
-              {/* Background Subtle Dotted Grid */}
-              <div 
-                className="absolute inset-0 opacity-15 pointer-events-none"
-                style={{
-                  backgroundImage: 'radial-gradient(circle, #566451 1px, transparent 1px)',
-                  backgroundSize: '24px 24px'
-                }}
-              />
+        <main className={`relative min-h-0 overflow-hidden bg-[#070b11] lg:h-auto ${isFullscreen ? 'h-[calc(100vh-154px)]' : 'h-[520px]'}`}>
+          <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_48%_44%,rgba(97,216,255,0.055),transparent_32%),radial-gradient(circle_at_50%_50%,rgba(139,124,255,0.035),transparent_62%)]" />
+          <div className={`relative h-full w-full touch-none overflow-hidden ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={stopPanning} onPointerCancel={stopPanning} onWheel={handleWheel}>
+            <div ref={canvasRef} className="absolute left-0 top-0 origin-top-left select-none will-change-transform" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoomLevel / 100})`, transition: isPanning ? 'none' : 'transform 180ms ease-out' }}>
+              <div className="pointer-events-none absolute inset-0 opacity-25" style={{ backgroundImage: 'radial-gradient(circle, rgba(119,145,178,.55) 0.8px, transparent 0.8px)', backgroundSize: '22px 22px' }} />
 
-              {/* SVG Foreign-Key Connection Lines Layer */}
-              <svg 
-                className="absolute inset-0 w-full h-full pointer-events-none z-0" 
-                viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
-              >
+              <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full" viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}>
                 <defs>
-                  <marker 
-                    id="cv-crowfoot" 
-                    viewBox="0 0 10 10" 
-                    refX="0" 
-                    refY="5" 
-                    markerWidth="8" 
-                    markerHeight="8" 
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M 0 1 L 8 5 L 0 9 M 8 5 L 0 5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
-                  
-                  <marker 
-                    id="cv-one" 
-                    viewBox="0 0 10 10" 
-                    refX="4" 
-                    refY="5" 
-                    markerWidth="8" 
-                    markerHeight="8" 
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M 3 1 L 3 9 M 7 1 L 7 9" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                  </marker>
+                  <filter id="schema-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+                  <marker id="schema-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="currentColor" strokeWidth="1.5" /></marker>
                 </defs>
-
-                {CONNECTIONS.map((conn, idx) => {
-                  const { sx, sy, tx, ty } = getEdgeCoordinates(conn.from, conn.to);
-                  
-                  const isHighlighted = 
-                    hoveredTable === conn.from || 
-                    hoveredTable === conn.to ||
-                    selectedTable.id === conn.from ||
-                    selectedTable.id === conn.to;
-                  
-                  const isDirectPair = 
-                    (selectedTable.id === conn.from && hoveredTable === conn.to) ||
-                    (selectedTable.id === conn.to && hoveredTable === conn.from);
-
-                  const dx = Math.abs(tx - sx) * 0.4;
-                  const dy = Math.abs(ty - sy) * 0.4;
-                  const pathD = sx === tx || sy === ty 
-                    ? `M ${sx} ${sy} L ${tx} ${ty}`
-                    : `M ${sx} ${sy} C ${sx + (tx > sx ? dx : -dx)} ${sy}, ${tx + (tx > sx ? -dx : dx)} ${ty}, ${tx} ${ty}`;
-
-                  const strokeColor = isHighlighted 
-                    ? (isDirectPair ? '#efece3' : '#dd7058') 
-                    : '#2b3628';
-
+                {CONNECTIONS.map((connection, index) => {
+                  const path = edgePath(connection.from, connection.to);
+                  const active = connection.from === selectedTable.id || connection.to === selectedTable.id;
+                  const hovered = hoveredTable === connection.from || hoveredTable === connection.to;
+                  const muted = viewMode === 'impact' && !active;
+                  const color = active ? '#61d8ff' : hovered ? '#8b7cff' : '#34445a';
                   return (
-                    <g key={idx}>
-                      {isHighlighted && (
-                        <path
-                          d={pathD}
-                          fill="none"
-                          stroke={strokeColor}
-                          strokeWidth="4"
-                          strokeOpacity="0.25"
-                        />
-                      )}
-                      <path
-                        d={pathD}
-                        fill="none"
-                        stroke={strokeColor}
-                        strokeWidth={isHighlighted ? 2 : 1}
-                        markerStart="url(#cv-one)"
-                        markerEnd="url(#cv-crowfoot)"
-                        style={{ color: strokeColor }}
-                      />
+                    <g key={`${connection.from}-${connection.to}-${connection.key}`} opacity={muted ? 0.1 : active ? 1 : 0.5}>
+                      {active && <path d={path} fill="none" stroke={color} strokeWidth="8" strokeOpacity="0.09" filter="url(#schema-glow)" />}
+                      <path d={path} fill="none" stroke={color} strokeWidth={active ? 1.75 : 1} strokeDasharray={active ? '6 5' : undefined} markerEnd="url(#schema-arrow)" style={{ color }} />
+                      {active && !reduceMotion && <><circle r="3.4" fill="#61d8ff" filter="url(#schema-glow)"><animateMotion dur={`${2.4 + (index % 3) * 0.5}s`} repeatCount="indefinite" path={path} /></circle><circle r="1.8" fill="#ffffff"><animateMotion dur={`${2.4 + (index % 3) * 0.5}s`} begin="-1.15s" repeatCount="indefinite" path={path} /></circle></>}
                     </g>
                   );
                 })}
               </svg>
 
-              {/* Table Nodes */}
-              {TABLES.map((table) => {
-                const isHovered = hoveredTable === table.id;
-                const isSelected = selectedTable.id === table.id;
-                const isRelatedToSelected = isRelated(selectedTable.id, table.id);
-
-                let borderStyle = 'border-cv-border/30 bg-cv-shell/95';
-                if (isSelected) borderStyle = 'border-cv-moss ring-2 ring-cv-moss/20 bg-cv-surface';
-                else if (isHovered) borderStyle = 'border-cv-text/60 bg-cv-surface/90';
-                else if (isRelatedToSelected) borderStyle = 'border-cv-border bg-cv-shell';
-
+              {TABLES.map(table => {
+                const selected = selectedTable.id === table.id;
+                const related = connectedIds.has(table.id) && !selected;
+                const hovered = hoveredTable === table.id;
+                const muted = (searchQuery.length > 0 && !matches.has(table.id)) || (viewMode === 'impact' && !connectedIds.has(table.id));
+                const primaryKey = table.columns.find(column => column.key?.includes('PK'));
+                const foreignKeyCount = table.columns.filter(column => column.key?.includes('FK')).length;
                 return (
-                  <div
-                    key={table.id}
-                    style={{ 
-                      left: `${(table.x / 100) * canvasWidth}px`, 
-                      top: `${(table.y / 100) * canvasHeight}px`,
-                      width: `${cardWidth}px`
-                    }}
-                    className={`absolute rounded-xl border backdrop-blur-md shadow-xl transition-all duration-150 cursor-pointer z-10 select-none overflow-hidden ${borderStyle}`}
-                    onMouseEnter={() => setHoveredTable(table.id)}
-                    onMouseLeave={() => setHoveredTable(null)}
-                    onClick={() => setSelectedTable(table)}
-                  >
-                    {/* Card Header */}
-                    <div className="px-3 py-2 bg-cv-shell/80 flex items-center justify-between border-b border-cv-border/30">
-                      <span className="font-mono font-bold text-xs tracking-tight text-cv-text truncate">
-                        {table.name}
-                      </span>
-                      <div 
-                        className="w-2 h-2 rounded-full shrink-0" 
-                        style={{ backgroundColor: table.color }}
-                      />
-                    </div>
-
-                    {/* Columns Preview */}
-                    <div className="p-2 space-y-1 font-mono text-[9px] text-cv-muted bg-cv-surface-2/60">
-                      {/* PK items */}
-                      {table.columns.filter(c => c.key?.includes('PK')).map((col) => (
-                        <div key={col.name} className="flex items-center justify-between font-bold text-cv-text border-b border-cv-border/20 pb-0.5 mb-0.5">
-                          <span className="flex items-center gap-1 truncate">
-                            <Key className="w-2.5 h-2.5 text-cv-moss" />
-                            {col.name}
-                          </span>
-                          <span className="text-[8px] text-cv-moss">PK</span>
-                        </div>
-                      ))}
-
-                      {/* FK / Regular items */}
-                      {table.columns.filter(c => !c.key?.includes('PK')).slice(0, 3).map((col) => (
-                        <div key={col.name} className="flex items-center justify-between text-cv-muted/80">
-                          <span className="truncate">{col.name}</span>
-                          <span className="text-[8px] text-cv-muted/50">{col.key || ''}</span>
-                        </div>
-                      ))}
-                      
-                      {table.columns.filter(c => !c.key?.includes('PK')).length > 3 && (
-                        <div className="text-[8px] text-center pt-0.5 text-cv-muted/50">
-                          +{table.columns.filter(c => !c.key?.includes('PK')).length - 3} more cols
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <button key={table.id} type="button" data-schema-node onClick={() => focusTable(table)} onMouseEnter={() => setHoveredTable(table.id)} onMouseLeave={() => setHoveredTable(null)} style={{ left: (table.x / 100) * CANVAS_WIDTH, top: (table.y / 100) * CANVAS_HEIGHT, width: NODE_WIDTH, height: NODE_HEIGHT, opacity: muted ? 0.16 : 1 }} className={`absolute z-10 overflow-hidden border text-left backdrop-blur-md transition-[opacity,border-color,background-color,box-shadow,transform] duration-200 ${selected ? 'scale-[1.04] border-[#ff6b57] bg-[#14151d] shadow-[0_0_0_1px_rgba(255,107,87,.35),0_0_32px_rgba(255,107,87,.22)]' : related ? 'border-[#61d8ff]/65 bg-[#0c141e] shadow-[0_0_18px_rgba(97,216,255,.08)]' : hovered ? 'border-[#8b7cff]/80 bg-[#101622]' : 'border-[#40506a]/65 bg-[#0b111a]/95'}`}>
+                    <div className="flex h-11 items-center gap-2.5 border-b border-white/[0.08] px-3"><TableIcon className={`h-4 w-4 ${selected ? 'text-[#ff6b57]' : related ? 'text-[#61d8ff]' : 'text-[#8391a5]'}`} /><span className="min-w-0 flex-1 truncate font-mono text-[11px] font-bold text-white">{table.name}</span>{selected && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ff6b57]" />}</div>
+                    <div className="px-3 py-2 font-mono text-[9px]"><div className="flex items-center justify-between text-[#91a0b4]"><span className="flex min-w-0 items-center gap-1 truncate"><Key className="h-2.5 w-2.5 text-[#f2c95c]" />{primaryKey?.name || 'no primary key'}</span><span>{table.columns.length} cols</span></div><div className="mt-2 flex items-center justify-between border-t border-white/[0.06] pt-1.5 text-[#59697f]"><span>public</span><span>{foreignKeyCount} FK</span></div></div>
+                  </button>
                 );
               })}
-
             </div>
-          </div>
-        </div>
 
-        {/* Column 3: Right Inspector Panel (3.5 cols on lg) */}
-        <div className="lg:col-span-3 bg-cv-shell border border-cv-border/30 rounded-2xl p-4 flex flex-col space-y-4">
-          
-          {/* Selected Table Identity */}
-          <div className="p-3.5 rounded-xl bg-cv-surface border border-cv-border/40 space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-widest text-cv-muted">
-                  public.{selectedTable.name}
-                </span>
-                <h3 className="font-mono font-bold text-base text-cv-text">
-                  {selectedTable.name}
-                </h3>
+            <div className="pointer-events-none absolute bottom-4 left-4 z-20 flex items-center gap-2 border border-white/[0.09] bg-[#090e16]/85 px-3 py-2 font-mono text-[9px] text-[#718096] backdrop-blur-md"><Move className="h-3 w-3 text-[#61d8ff]" /> Drag to pan <span className="text-[#3f4d60]">/</span> Ctrl + wheel to zoom</div>
+            <div className="absolute bottom-4 right-4 z-20 hidden h-[92px] w-[150px] overflow-hidden border border-white/[0.12] bg-[#080d14]/90 p-2 shadow-2xl backdrop-blur-md xl:block">
+              <div className="relative h-full w-full">
+                {CONNECTIONS.map(connection => {
+                  const from = TABLE_BY_ID.get(connection.from)!;
+                  const to = TABLE_BY_ID.get(connection.to)!;
+                  return <span key={`${connection.from}-${connection.to}`} className="absolute h-px origin-left bg-[#334158]" style={{ left: `${from.x}%`, top: `${from.y}%`, width: `${Math.hypot(to.x - from.x, to.y - from.y)}%`, transform: `rotate(${Math.atan2(to.y - from.y, to.x - from.x) * (180 / Math.PI)}deg)` }} />;
+                })}
+                {TABLES.map(table => <button key={table.id} type="button" aria-label={`Focus ${table.name}`} onClick={() => focusTable(table)} className={`absolute h-1.5 w-2.5 -translate-x-1/2 -translate-y-1/2 border ${selectedTable.id === table.id ? 'border-[#ff8f7f] bg-[#ff6b57]' : connectedIds.has(table.id) ? 'border-[#61d8ff] bg-[#163244]' : 'border-[#52627a] bg-[#141c28]'}`} style={{ left: `${table.x + 7}%`, top: `${table.y + 7}%` }} />)}
               </div>
-              <span 
-                className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold text-cv-ink"
-                style={{ backgroundColor: selectedTable.color }}
-              >
-                3NF Table
-              </span>
-            </div>
-            <p className="text-xs text-cv-muted leading-relaxed">
-              {selectedTable.description}
-            </p>
-          </div>
-
-          {/* Relational Constraints */}
-          <div className="space-y-2">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-cv-muted flex items-center gap-1.5">
-              <Link2 className="w-3.5 h-3.5 text-cv-moss" /> Foreign Keys & Dependencies
-            </div>
-
-            {selectedTableFks.length === 0 && incomingFks.length === 0 ? (
-              <div className="p-2.5 rounded-xl bg-cv-surface-2 border border-cv-border/30 text-[11px] text-cv-muted font-mono">
-                Root table with no outgoing foreign keys.
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                {selectedTableFks.map((fk, idx) => (
-                  <div key={idx} className="p-2 rounded-xl bg-cv-surface-2 border border-cv-border/30 text-[10px] font-mono flex items-center justify-between">
-                    <span className="text-cv-text">
-                      <strong className="text-cv-moss">{fk.column}</strong> → {fk.targetTable}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-cv-shell text-cv-muted">{fk.type}</span>
-                  </div>
-                ))}
-                {incomingFks.map((fk, idx) => (
-                  <div key={`in-${idx}`} className="p-2 rounded-xl bg-cv-surface-2/60 border border-cv-border/20 text-[10px] font-mono flex items-center justify-between">
-                    <span className="text-cv-muted">
-                      {fk.sourceTable} references <strong className="text-cv-text">{fk.column}</strong>
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-cv-shell text-cv-muted">Referenced</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Column Catalog */}
-          <div className="space-y-2 flex-1">
-            <div className="text-[11px] font-mono uppercase tracking-wider text-cv-muted flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-cv-moss" /> Column Catalog ({selectedTable.columns.length})
-            </div>
-
-            <div className="rounded-xl border border-cv-border/30 overflow-hidden bg-cv-surface-2 max-h-52 overflow-y-auto">
-              <table className="w-full text-left font-mono text-[10px]">
-                <thead>
-                  <tr className="bg-cv-shell border-b border-cv-border/30 text-cv-muted">
-                    <th className="p-2 font-semibold">Column</th>
-                    <th className="p-2 font-semibold">Type</th>
-                    <th className="p-2 font-semibold text-right">Key</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-cv-border/20">
-                  {selectedTable.columns.map((col) => (
-                    <tr key={col.name} className="hover:bg-cv-shell/40 transition-colors">
-                      <td className="p-2 text-cv-text font-medium flex items-center gap-1">
-                        {col.key?.includes('PK') && <Key className="w-2.5 h-2.5 text-cv-moss" />}
-                        {col.key?.includes('FK') && <Link2 className="w-2.5 h-2.5 text-cv-muted" />}
-                        <span>{col.name}</span>
-                      </td>
-                      <td className="p-2 text-cv-muted">{col.type}</td>
-                      <td className="p-2 text-right text-cv-moss font-semibold">
-                        {col.key || ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
+        </main>
 
-          {/* DDL SQL Block */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-cv-muted">
-              <div className="flex items-center gap-1.5">
-                <Terminal className="w-3.5 h-3.5" /> DDL Definition
-              </div>
-              <button
-                onClick={handleCopyDdl}
-                className="text-[10px] text-cv-moss hover:text-cv-text flex items-center gap-1 transition-colors"
-              >
-                {copiedDdl ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedDdl ? 'Copied' : 'Copy DDL'}</span>
-              </button>
-            </div>
-            <div className="rounded-xl bg-[#0d130d] border border-cv-border/40 p-3 font-mono text-[10px] text-cv-muted overflow-x-auto leading-relaxed max-h-36">
-              <pre>{selectedTable.ddl}</pre>
-            </div>
+        <aside className={`min-h-0 overflow-y-auto border-t border-white/[0.09] bg-[#090e16] lg:block lg:border-l lg:border-t-0 ${isFullscreen ? 'hidden' : 'block'}`}>
+          <div className="border-b border-white/[0.08] p-4">
+            <div className="flex items-start gap-3"><div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center border border-[#ff6b57]/60 bg-[#ff6b57]/10 text-[#ff6b57]"><TableIcon className="h-4 w-4" /></div><div className="min-w-0 flex-1"><div className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#6f7e92]">public schema</div><h3 className="truncate font-mono text-lg font-bold text-white">{selectedTable.name}</h3><p className="mt-2 text-[11px] leading-5 text-[#8190a3]">{selectedTable.description}</p></div></div>
+            <div className="mt-4 grid grid-cols-3 gap-px bg-white/[0.08]"><div className="bg-[#0c121b] px-2 py-2 text-center"><strong className="block font-mono text-sm text-white">{selectedTable.columns.length}</strong><span className="text-[8px] uppercase tracking-wider text-[#637187]">Columns</span></div><div className="bg-[#0c121b] px-2 py-2 text-center"><strong className="block font-mono text-sm text-[#61d8ff]">{outgoing.length}</strong><span className="text-[8px] uppercase tracking-wider text-[#637187]">Outgoing</span></div><div className="bg-[#0c121b] px-2 py-2 text-center"><strong className="block font-mono text-sm text-[#8b7cff]">{incoming.length}</strong><span className="text-[8px] uppercase tracking-wider text-[#637187]">Incoming</span></div></div>
           </div>
 
-        </div>
+          <div className="sticky top-0 z-10 grid grid-cols-3 border-b border-white/[0.09] bg-[#090e16]/95 px-3 pt-2 backdrop-blur-md">
+            {(['columns', 'relationships', 'ddl'] as InspectorTab[]).map(tab => <button key={tab} type="button" onClick={() => setInspectorTab(tab)} className={`border-b-2 px-1 py-2.5 text-[9px] font-bold uppercase tracking-[0.1em] transition-colors ${inspectorTab === tab ? 'border-[#ff6b57] text-[#ff8f7f]' : 'border-transparent text-[#66758a] hover:text-white'}`}>{tab}</button>)}
+          </div>
 
+          <div className="p-3">
+            {inspectorTab === 'columns' && <div className="divide-y divide-white/[0.065] border-y border-white/[0.08]">{selectedTable.columns.map(column => <div key={column.name} className="group flex items-center gap-2 py-2.5 font-mono text-[10px]"><span className="grid h-5 w-5 shrink-0 place-items-center">{column.key?.includes('PK') ? <Key className="h-3 w-3 text-[#f2c95c]" /> : column.key?.includes('FK') ? <Link2 className="h-3 w-3 text-[#61d8ff]" /> : <span className="h-1 w-1 rounded-full bg-[#3f4d60]" />}</span><span className="min-w-0 flex-1 truncate text-[#dce5f2]">{column.name}</span><span className="text-right text-[9px] text-[#66758a]">{column.type}</span>{column.key && <span className="text-[8px] font-bold text-[#ff8f7f]">{column.key}</span>}</div>)}</div>}
+
+            {inspectorTab === 'relationships' && <div className="space-y-2">
+              {outgoing.map(connection => { const target = TABLE_BY_ID.get(connection.to)!; return <button key={`${connection.to}-${connection.key}`} type="button" onClick={() => focusTable(target)} className="group flex w-full items-center gap-2 border border-[#61d8ff]/20 bg-[#61d8ff]/[0.035] p-3 text-left hover:border-[#61d8ff]/60"><Route className="h-3.5 w-3.5 text-[#61d8ff]" /><span className="min-w-0 flex-1 font-mono text-[10px] text-white"><strong className="text-[#61d8ff]">{connection.key}</strong> → {connection.to}</span><ChevronRight className="h-3 w-3 text-[#516078] transition-transform group-hover:translate-x-0.5" /></button>; })}
+              {incoming.map(connection => { const source = TABLE_BY_ID.get(connection.from)!; return <button key={`${connection.from}-${connection.key}`} type="button" onClick={() => focusTable(source)} className="group flex w-full items-center gap-2 border border-[#8b7cff]/20 bg-[#8b7cff]/[0.035] p-3 text-left hover:border-[#8b7cff]/60"><Link2 className="h-3.5 w-3.5 text-[#8b7cff]" /><span className="min-w-0 flex-1 font-mono text-[10px] text-[#c7d1df]">{connection.from} <strong className="text-[#8b7cff]">references</strong> {connection.key}</span><ChevronRight className="h-3 w-3 text-[#516078] transition-transform group-hover:translate-x-0.5" /></button>; })}
+              {outgoing.length === 0 && incoming.length === 0 && <p className="py-8 text-center font-mono text-[10px] text-[#66758a]">No foreign-key relationships.</p>}
+            </div>}
+
+            {inspectorTab === 'ddl' && <div><div className="mb-2 flex items-center justify-between"><span className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.15em] text-[#718096]"><Terminal className="h-3.5 w-3.5" /> Definition</span><button type="button" onClick={handleCopyDdl} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-[#61d8ff] hover:text-white">{copiedDdl ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copiedDdl ? 'Copied' : 'Copy DDL'}</button></div><pre className="overflow-x-auto border border-white/[0.09] bg-[#060a10] p-3 font-mono text-[9px] leading-[1.7] text-[#9fb0c5] selection:bg-[#ff6b57]/30">{selectedTable.ddl}</pre></div>}
+          </div>
+        </aside>
       </div>
+
+      <div className="pointer-events-none absolute left-1/2 top-[116px] z-20 hidden -translate-x-1/2 items-center gap-2 border border-white/[0.08] bg-[#090e16]/75 px-3 py-1.5 font-mono text-[9px] text-[#66758a] backdrop-blur-md md:flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#61d8ff]" />{connectedIds.size - 1} live dependencies from public.{selectedTable.name}</div>
     </div>
   );
 }
