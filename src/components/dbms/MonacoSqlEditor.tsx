@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 
@@ -32,6 +32,8 @@ export default function MonacoSqlEditor({
   height = '240px',
 }: MonacoSqlEditorProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const runCallbackRef = useRef(onRun);
+  runCallbackRef.current = onRun;
 
   useEffect(() => {
     setIsMounted(true);
@@ -40,9 +42,7 @@ export default function MonacoSqlEditor({
   const handleEditorDidMount = (editor: any, monaco: any) => {
     // Add custom Cmd+Enter / Ctrl+Enter run action
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
-      if (onRun) {
-        onRun();
-      }
+      runCallbackRef.current?.();
     });
 
     // Define Cineverse warm graphite theme
