@@ -83,16 +83,9 @@ async function run() {
     console.log('📸 Capturing: 00-cinetrace-provenance-desktop.png');
     await page.goto(`${BASE_URL}/trace`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1200));
-    // Click "Save review & capture trace →" to demonstrate live transaction tracing
-    const traceBtns = await page.$$('button');
-    for (const b of traceBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Save rating & capture trace')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 1500));
+    // Read-only capture: display the most recent saved trace without creating a new review.
+    // To generate an example, create one explicitly on a disposable local demo database first.
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '00-cinetrace-provenance-desktop.png') });
 
     // 7. Capture Movie Details (Inception /movies/1)
@@ -128,15 +121,8 @@ async function run() {
       }
     }
     await new Promise(r => setTimeout(r, 800));
-    const execTrgBtns = await page.$$('button');
-    for (const b of execTrgBtns) {
-      const txt = await page.evaluate(el => el.textContent, b);
-      if (txt.includes('Execute Test Trigger') || txt.includes('Test Trigger')) {
-        await b.click();
-        break;
-      }
-    }
-    await new Promise(r => setTimeout(r, 1200));
+    // Read-only screenshot; do not execute a real trigger mutation.
+    await new Promise(r => setTimeout(r, 600));
     await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '12-projection-room-trigger-desktop.png') });
 
     // 10. Capture DB Studio — Schema & Interactive ER Diagram
