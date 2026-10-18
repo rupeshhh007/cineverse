@@ -358,7 +358,7 @@ export default function UserProfilePage() {
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-white tracking-tight m-0">
-                  Logged Reviews ({filterRating !== null ? reviews.filter(r => Math.round(Number(r.rating)) === filterRating).length : reviews.length})
+                  Logged Reviews ({filterRating !== null ? reviews.filter(r => Math.floor(Number(r.rating)) === filterRating).length : reviews.length})
                 </h2>
                 {filterRating !== null && (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#ff6b57]/20 text-[#ff8f7f]">
@@ -373,7 +373,7 @@ export default function UserProfilePage() {
 
             {(() => {
               const displayed = filterRating !== null
-                ? reviews.filter(r => Math.round(Number(r.rating)) === filterRating)
+                ? reviews.filter(r => Math.floor(Number(r.rating)) === filterRating)
                 : reviews;
 
               if (displayed.length === 0) {
