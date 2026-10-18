@@ -153,35 +153,7 @@ export default function InvestigationStepPlayer({
             <div className="p-3 rounded-xl bg-[#221f1c] border border-white/5 flex items-start gap-3">
               <Database className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
               <div className="text-xs text-[#d8dee8] leading-relaxed">
-                {currentReceipt.toolName === 'find_my_contrast_pairs' && (
-                  <span>
-                    Executed deterministic contrast query across your reviews. Discovered genre-overlapping anomaly between{' '}
-                    <strong className="text-white">Interstellar</strong> (10.0) and{' '}
-                    <strong className="text-white">Arrival</strong> (4.5) with a 5.5-point divergence.
-                  </span>
-                )}
-                {currentReceipt.toolName === 'find_opposing_critics' && (
-                  <span>
-                    Cross-referenced reviewer history. Qualified critic{' '}
-                    <strong className="text-white">Elena Rostov</strong> with 5 shared films (&gt;96% historical alignment) and a stark delta on{' '}
-                    <strong className="text-white">Oppenheimer</strong>.
-                  </span>
-                )}
-                {currentReceipt.toolName === 'get_my_review_history' && (
-                  <span>
-                    Retrieved authenticated rating and text history from PostgreSQL `reviews` table, verifying candidate evidence lineage.
-                  </span>
-                )}
-                {currentReceipt.toolName === 'get_movie_context' && (
-                  <span>
-                    Fetched relational metadata from `movies` and `movie_genres` to ground hypothesis in director, runtime, and themes.
-                  </span>
-                )}
-                {!['find_my_contrast_pairs', 'find_opposing_critics', 'get_my_review_history', 'get_movie_context'].includes(currentReceipt.toolName) && (
-                  <span>
-                    Executed relational agent tool call returning {currentReceipt.recordsReturned ?? currentReceipt.resultCount ?? 0} database records in {currentReceipt.latencyMs ?? currentReceipt.durationMs ?? 0}ms.
-                  </span>
-                )}
+                <span>{currentReceipt.description || `Tool ${currentReceipt.toolName} returned ${currentReceipt.resultCount ?? 0} records.`}</span>
               </div>
             </div>
           </motion.div>
