@@ -4,6 +4,18 @@ const path = require('path');
 
 const CHROME_PATH = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+
+// Visiting /countercut?movieId=... (and the first visit to /countercut)
+// creates investigation records, so a complete gallery must use a disposable DB.
+// Explicit opt-in prevents accidental writes to a working or deployed database.
+if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(new URL(BASE_URL).hostname) ||
+    process.env.CINEVERSE_SCREENSHOT_DISPOSABLE !== 'true') {
+  throw new Error(
+    'Screenshot gallery requires a LOCAL disposable database. Set CINEVERSE_SCREENSHOT_DISPOSABLE=true ' +
+    'only after starting Cineverse on an isolated demo DB; production/external BASE_URL values are refused.'
+  );
+}
+
 const SCREENSHOTS_DIR = path.join(__dirname, '..', 'screenshots');
 
 if (!fs.existsSync(SCREENSHOTS_DIR)) {
