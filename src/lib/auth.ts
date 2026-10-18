@@ -122,6 +122,15 @@ export async function getAuthenticatedUser(request?: NextRequest): Promise<Authe
   const session = verifySessionToken(token);
   if (!session) return null;
 
+  // Seed users 1–6 have published, shared fixture credentials.
+  // They must never authenticate against a public deployment by default.
+  if (process.env.NODE_ENV === 'production' &&
+      process.env.ALLOW_DEMO_LOGIN !== 'true' &&
+      Number.isInteger(session.userId) &&
+      session.userId >= 1 && session.userId <= 6) {
+    return null;
+  }
+
   try {
     const res = await query<AuthenticatedUser>(
       `SELECT user_id, username, display_name, email, avatar_url FROM users WHERE user_id = $1;`,
